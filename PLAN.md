@@ -53,6 +53,10 @@ desktop app for macOS and Windows. Both mount the same backend (`createProtoApi`
     (modal) layers, Back/Home targets, Esc to exit, flash-hotspots toggle, and
     instant/dissolve/slide-{left,right,up,down} transitions.
   - [ ] Support `data-goto="ScreenName"` in raw HTML as a code-first equivalent.
+- [ ] **Pet roadmap** (once real pixel-pet sprites exist): choose to hatch a
+  plain egg or a specific pixel pet; keep up to 2 pets; allow re-hatching a
+  pet. Re-hatching is framed as **rehoming, not deletion** — show the pet
+  "going to a new home" (pets are rehomed, not discarded).
 - [ ] **5 — Export & polish**:
   - [ ] Standalone HTML that plays the prototype offline (`file://`, zero
     build, zero network) — reuse the Play-mode script as a vanilla template.
