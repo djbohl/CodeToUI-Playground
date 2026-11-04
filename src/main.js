@@ -2,6 +2,8 @@ import { EditorView, basicSetup } from "codemirror";
 import { html } from "@codemirror/lang-html";
 import { css } from "@codemirror/lang-css";
 import { FileSync } from "./editor-sync.js";
+import { initPet } from "./pet.js";
+import { initColorPicker } from "./color-picker.js";
 
 const statusEl = document.getElementById("sync-status");
 const bannerEl = document.getElementById("conflict-banner");
@@ -1114,6 +1116,8 @@ projectsModalEl.addEventListener("click", (e) => {
 
 async function main() {
   setupTabs();
+  initPet();
+  initColorPicker();
 
   const { config, screens, globalCss: globalCssContent, wsPort, activeProject } =
     await fetchJson("/api/project");

@@ -123,7 +123,9 @@ body {
   border-right: 2px solid var(--border);
   background: var(--surface);
   padding: 12px;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .sidebar-title {
@@ -170,6 +172,9 @@ body {
   list-style: none;
   margin: 0;
   padding: 0;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 /* ------------------------------------------------------------------ *
@@ -727,4 +732,303 @@ body {
   height: 100%;
   border: none;
   background: #fff;
+}
+
+/* ------------------------------------------------------------------ *
+ * Pixel pet (sidebar companion)
+ * ------------------------------------------------------------------ */
+.pet-dock {
+  flex-shrink: 0;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 2px dashed var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+}
+
+.pet-bubble {
+  position: relative;
+  width: 100%;
+  background: var(--surface-2);
+  border: 2px solid var(--border-strong);
+  box-shadow: 2px 2px 0 var(--shadow);
+  padding: 7px 8px;
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--text);
+  text-align: center;
+  min-height: 2.2em;
+}
+
+.pet-bubble[hidden] {
+  display: none;
+}
+
+/* little speech-bubble tail */
+.pet-bubble::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -8px;
+  transform: translateX(-50%);
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid var(--border-strong);
+}
+
+.pet-stage {
+  height: 54px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.pet-sprite {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 40px;
+  line-height: 1;
+  padding: 0;
+  image-rendering: pixelated;
+  animation: pet-bob 2.4s ease-in-out infinite;
+  filter: drop-shadow(2px 2px 0 var(--shadow));
+}
+
+.pet-sprite.egg {
+  animation: pet-wiggle 1.6s ease-in-out infinite;
+  font-size: 34px;
+}
+
+.pet-sprite.jump {
+  animation: pet-jump 0.5s ease;
+}
+
+.pet-sprite.hatching {
+  animation: pet-pop 0.5s ease;
+}
+
+@keyframes pet-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes pet-wiggle {
+  0%, 100% { transform: rotate(-6deg); }
+  50% { transform: rotate(6deg); }
+}
+
+@keyframes pet-jump {
+  0% { transform: translateY(0) scale(1); }
+  35% { transform: translateY(-14px) scale(1.12, 0.9); }
+  70% { transform: translateY(0) scale(0.95, 1.05); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+@keyframes pet-pop {
+  0% { transform: scale(0.4) rotate(-20deg); opacity: 0.4; }
+  60% { transform: scale(1.3) rotate(10deg); }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+.pet-caption {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent-2);
+  text-align: center;
+}
+
+.pet-hatch {
+  width: 100%;
+}
+
+.pet-hatch[hidden] {
+  display: none;
+}
+
+/* ------------------------------------------------------------------ *
+ * Color picker
+ * ------------------------------------------------------------------ */
+.color-dialog {
+  width: min(340px, 92vw);
+}
+
+.color-mode {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.color-body {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+  margin-bottom: 12px;
+}
+
+.color-sv {
+  position: relative;
+  width: 200px;
+  height: 160px;
+  border: 2px solid var(--border-strong);
+  cursor: crosshair;
+  touch-action: none;
+  /* hue layer is set inline via JS; these stack the white->hue and ->black */
+  background-image:
+    linear-gradient(to top, #000, rgba(0, 0, 0, 0)),
+    linear-gradient(to right, #fff, rgba(255, 255, 255, 0));
+}
+
+.color-sv-thumb,
+.color-hue-thumb {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px #000;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.color-hue {
+  position: relative;
+  width: 22px;
+  height: 160px;
+  border: 2px solid var(--border-strong);
+  cursor: ns-resize;
+  touch-action: none;
+  background: linear-gradient(
+    to bottom,
+    #f00 0%, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00 100%
+  );
+}
+
+.color-hue-thumb {
+  left: 50%;
+  width: 22px;
+  height: 6px;
+  border-radius: 0;
+}
+
+.color-swatch {
+  flex: 1;
+  border: 2px solid var(--border-strong);
+  min-width: 36px;
+}
+
+.color-fields {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.color-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.color-fields input {
+  width: 48px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 2px solid var(--border);
+  padding: 5px 6px;
+}
+
+.color-hex-field input {
+  width: 82px;
+}
+
+.color-fields input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.color-gradient {
+  margin-bottom: 12px;
+}
+
+.color-gradient[hidden] {
+  display: none;
+}
+
+.color-stops {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.color-stop {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  background: var(--surface-2);
+  border: 2px solid var(--border);
+  box-shadow: 2px 2px 0 var(--shadow);
+  padding: 5px 8px;
+  cursor: pointer;
+}
+
+.color-stop.active {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.color-angle-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.color-angle-label input {
+  width: 54px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 2px solid var(--border);
+  padding: 4px 6px;
+}
+
+.color-grad-preview {
+  height: 36px;
+  border: 2px solid var(--border-strong);
+}
+
+.color-copy {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.color-copied {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ok);
+}
+
+.color-copied[hidden] {
+  display: none;
 }

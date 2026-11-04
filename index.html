@@ -14,6 +14,14 @@
       </button>
       <div class="sidebar-title">Screens</div>
       <ul id="screen-list"></ul>
+      <div class="pet-dock" id="pet-dock">
+        <div class="pet-bubble" id="pet-bubble" hidden></div>
+        <div class="pet-stage">
+          <button class="pet-sprite" id="pet-sprite" title="Pet me">🥚</button>
+        </div>
+        <div class="pet-caption" id="pet-caption">A mysterious egg…</div>
+        <button class="topbar-btn pet-hatch" id="pet-hatch">Hatch!</button>
+      </div>
     </aside>
     <div class="main">
       <header class="topbar">
@@ -24,6 +32,7 @@
         <button class="topbar-btn" id="link-toggle">Link</button>
         <button class="topbar-btn" id="play-toggle">Play</button>
         <button class="topbar-btn" id="overview-toggle">Overview</button>
+        <button class="topbar-btn" id="color-toggle">Colors</button>
         <button class="topbar-btn" id="theme-toggle" title="Toggle light/dark">☾ Dark</button>
         <div class="status" id="sync-status">connecting…</div>
       </header>
@@ -102,6 +111,49 @@
         <button class="topbar-btn" id="project-create">Create</button>
       </div>
       <div class="projects-error" id="projects-error" hidden></div>
+    </div>
+  </div>
+  <div class="modal" id="color-modal" hidden>
+    <div class="modal-dialog color-dialog">
+      <div class="modal-head">
+        <span>Color Picker</span>
+        <button class="topbar-btn" id="color-close">Close</button>
+      </div>
+      <div class="color-mode">
+        <button class="topbar-btn active" id="color-mode-solid">Solid</button>
+        <button class="topbar-btn" id="color-mode-gradient">Gradient</button>
+      </div>
+      <div class="color-body">
+        <div class="color-sv" id="color-sv">
+          <div class="color-sv-thumb" id="color-sv-thumb"></div>
+        </div>
+        <div class="color-hue" id="color-hue">
+          <div class="color-hue-thumb" id="color-hue-thumb"></div>
+        </div>
+        <div class="color-swatch" id="color-swatch"></div>
+      </div>
+      <div class="color-gradient" id="color-gradient" hidden>
+        <div class="color-stops">
+          <button class="color-stop active" id="color-stop-a">Stop 1</button>
+          <button class="color-stop" id="color-stop-b">Stop 2</button>
+          <label class="color-angle-label">Angle
+            <input id="color-angle" type="number" min="0" max="360" value="90" />
+          </label>
+        </div>
+        <div class="color-grad-preview" id="color-grad-preview"></div>
+      </div>
+      <div class="color-fields">
+        <label>R<input id="color-r" type="number" min="0" max="255" /></label>
+        <label>G<input id="color-g" type="number" min="0" max="255" /></label>
+        <label>B<input id="color-b" type="number" min="0" max="255" /></label>
+        <label class="color-hex-field">HEX<input id="color-hex" type="text" maxlength="7" /></label>
+      </div>
+      <div class="color-copy">
+        <button class="topbar-btn" id="color-copy-hex">Copy HEX</button>
+        <button class="topbar-btn" id="color-copy-rgb">Copy RGB</button>
+        <button class="topbar-btn" id="color-copy-grad" hidden>Copy Gradient</button>
+        <span class="color-copied" id="color-copied" hidden>Copied!</span>
+      </div>
     </div>
   </div>
   <div class="play-mode" id="play-mode" hidden>
