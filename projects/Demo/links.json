@@ -1,4 +1,13 @@
 {
   "version": 1,
-  "links": []
+  "links": [
+    {
+      "id": "Login:el-4fb756",
+      "screen": "Login",
+      "elementId": "el-4fb756",
+      "target": "Home",
+      "mode": "overlay",
+      "transition": "slide-up"
+    }
+  ]
 }
