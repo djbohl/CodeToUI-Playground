@@ -105,16 +105,20 @@ export async function pdfScreens({ projectDir, screens, deviceWidth = 1280, mock
   const page = await browser.newPage();
   try {
     const imgs = shots
-      .map((s) => `<img src="data:image/png;base64,${s.b64}">`)
+      .map((s) => `<div class="pg"><img src="data:image/png;base64,${s.b64}"></div>`)
       .join("");
+    // Each screen is centered on its own page and scaled DOWN to fit within the
+    // printable area (aspect preserved), so tall screens don't overflow/split.
     const doc = `<!doctype html><html><head><meta charset="utf-8"><style>
-      @page{margin:0}
-      html,body{margin:0}
-      img{display:block;width:100%;page-break-after:always}
-      img:last-child{page-break-after:auto}
+      @page{size:A4;margin:0}
+      html,body{margin:0;padding:0}
+      .pg{box-sizing:border-box;width:100vw;height:100vh;padding:10mm;display:flex;
+          align-items:center;justify-content:center;overflow:hidden;page-break-after:always}
+      .pg:last-child{page-break-after:auto}
+      .pg img{max-width:100%;max-height:100%;display:block}
     </style></head><body>${imgs}</body></html>`;
     await page.setContent(doc, { waitUntil: "load" });
-    const pdf = await page.pdf({ printBackground: true, format: "A4" });
+    const pdf = await page.pdf({ printBackground: true, format: "A4", preferCSSPageSize: true });
     return pdf;
   } finally {
     await page.close();
