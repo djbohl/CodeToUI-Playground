@@ -118,6 +118,13 @@ resulting apps are unsigned; see the warning above.
   overlays, **Flash hotspots** highlights every clickable area, and **Esc**
   exits.
 - **Theme** — the **☾/☀** button toggles light/dark; your choice is remembered.
+- **Colors** — the **Colors** button opens a pixel-styled picker (saturation/value
+  square + hue bar), RGB and HEX fields, and a two-stop gradient builder. Copy
+  any value (HEX, `rgb(...)`, or a `linear-gradient(...)`) to the clipboard and
+  paste it into your CSS.
+- **Pixel pet** — hatch a little companion at the bottom of the sidebar; it
+  bobs around, reacts when you pet it, and drops quips and app tips. (The
+  creatures are emoji placeholders for now — easy to swap for real sprites.)
 
 ## How projects are stored
 

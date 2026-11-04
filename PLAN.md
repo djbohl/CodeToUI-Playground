@@ -40,6 +40,9 @@ desktop app for macOS and Windows. Both mount the same backend (`createProtoApi`
 - [x] **Projects** (added): a projects root with multiple projects; list,
   create, switch (active project re-points the backend), and delete from the
   sidebar's Projects manager.
+- [x] **Fun extras** (added): a hatchable pixel pet companion (placeholder
+  emoji sprites, quips + tips) docked in the sidebar, and a pixel-themed color
+  tool (SV/hue picker, RGB/HEX, two-stop gradient) with clipboard copy.
 - [x] **4 — Link mode + Play mode**:
   - [x] `links.json` API (read/write); schema `{id, screen, elementId, target,
     mode, transition}` where `target` may be a screen or `$back` / `$home`.
