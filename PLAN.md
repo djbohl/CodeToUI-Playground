@@ -35,6 +35,11 @@ desktop app for macOS and Windows. Both mount the same backend (`createProtoApi`
   show/hide, and a pop-out preview window.
 - [x] **Packaging** (added): Electron desktop app (unsigned) for macOS/Windows,
   README, and CC BY-NC 4.0 license.
+- [x] **Theme** (added): arcade/pixel styling with a light/dark toggle
+  (persisted), driven by CSS custom-property tokens.
+- [x] **Projects** (added): a projects root with multiple projects; list,
+  create, switch (active project re-points the backend), and delete from the
+  sidebar's Projects manager.
 - [~] **4 — Link mode + Play mode** (in progress, needs testing):
   - [x] `links.json` API (read/write) and the `{id, screen, elementId, target,
     transition}` schema.
@@ -53,14 +58,19 @@ desktop app for macOS and Windows. Both mount the same backend (`createProtoApi`
 
 ## Project folder layout
 
+Projects live under a projects root (`projects/` from source, or
+`Documents/CodeToUI Playground` in the desktop app). One active project at a
+time; switchable from the sidebar's Projects manager.
+
 ```
-project/
-  proto.config.json     # screen order, start screen, device sizes
-  global.css            # shared colors / fonts / spacing
-  links.json            # prototype navigation (canonical store)
-  screens/
-    <Screen>/<Screen>.html, <Screen>.css
-  exports/              # generated (Phase 5): standalone.html, PNGs
+projects/
+  <ProjectName>/
+    proto.config.json     # screen order, start screen, device sizes
+    global.css            # shared colors / fonts / spacing
+    links.json            # prototype navigation (canonical store)
+    screens/
+      <Screen>/<Screen>.html, <Screen>.css
+    exports/              # generated (Phase 5): standalone.html, PNGs
 ```
 
 ## Verification

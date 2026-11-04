@@ -34,9 +34,9 @@ Download the installer for your platform from the repo's
 - **macOS** — open the `.dmg` and drag the app to Applications.
 - **Windows** — run the `.exe` installer.
 
-On first launch it creates an editable project folder at
-**`Documents/CodeToUI Playground`** — that's the folder to point Claude Code /
-Codex CLI at.
+On first launch it creates an editable **projects folder** at
+**`Documents/CodeToUI Playground`** (one subfolder per project, seeded with a
+`Demo`) — that's the folder to point Claude Code / Codex CLI at.
 
 > ⚠️ **Unsigned app warning.** These builds are **not code-signed** (code-signing
 > certificates cost money, and we're skipping them for now). Your OS will warn
@@ -69,7 +69,7 @@ npm run dev
 
 Then open the URL it prints (usually **http://localhost:5173**) in your
 browser. Leave the terminal running while you work; stop it with `Ctrl+C`.
-In this mode the project lives in the `project/` folder inside the repo.
+In this mode projects live in the `projects/` folder inside the repo.
 
 ### Building the desktop app yourself
 
@@ -86,6 +86,9 @@ resulting apps are unsigned; see the warning above.
 
 ## Using the app
 
+- **Projects** — the sidebar shows the current project at the top; click it to
+  open the Projects manager, where you can switch between projects, create a new
+  one, or delete one. Each project is its own folder of screens.
 - **Screens** — the left sidebar lists your screens. Click one to open it.
 - **Editor tabs** — edit the screen's **HTML**, its **CSS**, or the shared
   **Global CSS** (colors, fonts, spacing used across all screens). Changes save
@@ -106,24 +109,27 @@ resulting apps are unsigned; see the warning above.
   `links.json`, keyed to stable element ids so they survive HTML edits.
 - **Play** — click **Play** to run the prototype full-screen: clicking linked
   elements navigates between screens, **← Back** steps back, and **Esc** exits.
+- **Theme** — the **☾/☀** button toggles light/dark; your choice is remembered.
 
-## How a project is stored
+## How projects are stored
 
-Everything lives in the `project/` folder as readable files you (or an AI tool)
-can edit directly:
+Projects live under a **projects root** — `projects/` in the repo when running
+from source, or `Documents/CodeToUI Playground` in the desktop app. Each project
+is its own folder of readable files you (or an AI tool) can edit directly:
 
 ```
-project/
-  proto.config.json     # screen order, start screen, device sizes
-  global.css            # shared colors / fonts / spacing
-  links.json            # prototype link data (used by Link/Play mode)
-  screens/
-    Login/
-      Login.html
-      Login.css
-    Home/
-      Home.html
-      Home.css
+projects/
+  Demo/
+    proto.config.json     # screen order, start screen, device sizes
+    global.css            # shared colors / fonts / spacing
+    links.json            # prototype link data (used by Link/Play mode)
+    screens/
+      Login/
+        Login.html
+        Login.css
+      Home/
+        Home.html
+        Home.css
 ```
 
 - **Add a screen** by creating a new folder under `screens/` with a matching
