@@ -22,6 +22,25 @@
   --shadow: rgba(0, 0, 0, 0.55);
 
   --font-ui: ui-monospace, "SF Mono", "Cascadia Code", "Segoe UI Mono", Menlo, Consolas, monospace;
+
+  /* Code editor (CodeMirror) — dark */
+  --cm-bg: #141225;
+  --cm-text: #e7e3f7;
+  --cm-gutter-bg: #141225;
+  --cm-gutter-text: #6a6390;
+  --cm-cursor: #ff4d9d;
+  --cm-selection: #35305e;
+  --cm-active-line: rgba(255, 255, 255, 0.04);
+  --cm-keyword: #c792ea;
+  --cm-string: #c3e88d;
+  --cm-comment: #6a6390;
+  --cm-number: #f78c6c;
+  --cm-tag: #f07178;
+  --cm-attr: #ffcb6b;
+  --cm-prop: #82aaff;
+  --cm-fn: #82aaff;
+  --cm-type: #ffcb6b;
+  --cm-const: #f78c6c;
 }
 
 :root[data-theme="light"] {
@@ -42,6 +61,25 @@
   --warn-bg: #ffe9a8;
   --warn-text: #7a5a00;
   --shadow: rgba(40, 30, 70, 0.28);
+
+  /* Code editor (CodeMirror) — light */
+  --cm-bg: #ffffff;
+  --cm-text: #2b2740;
+  --cm-gutter-bg: #f3f1e6;
+  --cm-gutter-text: #9a93b5;
+  --cm-cursor: #d6246e;
+  --cm-selection: #d7e4ff;
+  --cm-active-line: rgba(0, 0, 0, 0.04);
+  --cm-keyword: #a626a4;
+  --cm-string: #3a9a3a;
+  --cm-comment: #9a93b5;
+  --cm-number: #b76b01;
+  --cm-tag: #e45649;
+  --cm-attr: #b76b01;
+  --cm-prop: #4078f2;
+  --cm-fn: #4078f2;
+  --cm-type: #b76b01;
+  --cm-const: #b76b01;
 }
 
 * { box-sizing: border-box; }

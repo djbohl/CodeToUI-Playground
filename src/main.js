@@ -2,6 +2,41 @@ import { EditorView, basicSetup } from "codemirror";
 import { html } from "@codemirror/lang-html";
 import { css } from "@codemirror/lang-css";
 import { javascript } from "@codemirror/lang-javascript";
+import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
+import { tags as t } from "@lezer/highlight";
+import { Prec } from "@codemirror/state";
+
+// Editor theme + syntax colors driven by our CSS variables, so the code is
+// readable in both light and dark and adapts when the theme toggles (no editor
+// recreation needed). The default CodeMirror highlight style is tuned for a
+// light background, which is why dark mode was unreadable.
+const editorTheme = EditorView.theme({
+  "&": { color: "var(--cm-text)", backgroundColor: "var(--cm-bg)" },
+  ".cm-content": { caretColor: "var(--cm-cursor)" },
+  ".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--cm-cursor)" },
+  "&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection": {
+    backgroundColor: "var(--cm-selection)",
+  },
+  ".cm-gutters": { backgroundColor: "var(--cm-gutter-bg)", color: "var(--cm-gutter-text)", border: "none" },
+  ".cm-activeLine": { backgroundColor: "var(--cm-active-line)" },
+  ".cm-activeLineGutter": { backgroundColor: "var(--cm-active-line)" },
+});
+
+const editorHighlight = HighlightStyle.define([
+  { tag: t.comment, color: "var(--cm-comment)", fontStyle: "italic" },
+  { tag: t.keyword, color: "var(--cm-keyword)" },
+  { tag: [t.string, t.inserted], color: "var(--cm-string)" },
+  { tag: [t.number, t.bool, t.null], color: "var(--cm-number)" },
+  { tag: [t.tagName], color: "var(--cm-tag)" },
+  { tag: [t.attributeName], color: "var(--cm-attr)" },
+  { tag: [t.propertyName], color: "var(--cm-prop)" },
+  { tag: [t.function(t.variableName), t.labelName], color: "var(--cm-fn)" },
+  { tag: [t.className, t.typeName, t.definition(t.typeName)], color: "var(--cm-type)" },
+  { tag: [t.constant(t.name), t.standard(t.name), t.color], color: "var(--cm-const)" },
+  { tag: t.operator, color: "var(--cm-text)" },
+]);
+
+const editorExtras = [editorTheme, Prec.highest(syntaxHighlighting(editorHighlight))];
 import { FileSync } from "./editor-sync.js";
 import { initPet } from "./pet.js";
 import { initColorPicker } from "./color-picker.js";
@@ -60,6 +95,7 @@ const exportPrototypeEl = document.getElementById("export-prototype");
 const exportCodeEl = document.getElementById("export-code");
 const exportImagesEl = document.getElementById("export-images");
 const exportMockupEl = document.getElementById("export-mockup");
+const exportPdfSizeEl = document.getElementById("export-pdf-size");
 const exportPdfEl = document.getElementById("export-pdf");
 const exportStatusEl = document.getElementById("export-status");
 const insertToggleEl = document.getElementById("insert-toggle");
@@ -271,6 +307,7 @@ function makeEditorView(container, lang, doc, onDocChanged) {
     extensions: [
       basicSetup,
       lang(),
+      ...editorExtras,
       EditorView.updateListener.of((update) => {
         if (update.docChanged) onDocChanged();
       }),
@@ -1169,7 +1206,12 @@ exportPdfEl.addEventListener("click", async () => {
     res = await fetch("/api/export/pdf", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ screens: names, deviceWidth: currentDeviceWidth || 1280, mockup: exportMockupEl.value }),
+      body: JSON.stringify({
+        screens: names,
+        deviceWidth: currentDeviceWidth || 1280,
+        mockup: exportMockupEl.value,
+        pageSize: exportPdfSizeEl.value,
+      }),
     });
   } catch (err) {
     return exportStatus(`PDF export failed: ${err.message}`);
