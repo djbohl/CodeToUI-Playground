@@ -59,6 +59,24 @@ Code, Codex CLI, any text editor).
 - Match existing code style; keep comments at the altitude of the surrounding
   code.
 
+## Known / accepted advisories
+
+`npm audit` may show a handful of **moderate** advisories plus deprecation
+warnings (`inflight`, `glob@7`, `rimraf@2`, `boolean`, `minimatch`). These all
+live inside **electron-builder**'s dependency tree and only run during
+`npm run app:build` (desktop packaging) — never in `npm run dev`, never in the
+app, never shipped to users. Don't force overrides on them (glob/rimraf major
+bumps break the installer build). Electron itself also re-accrues advisories
+after each release; that's normal. Prod deps (chokidar, connect, serve-static,
+parse5, ws) are kept clean.
+
+## Scope decisions
+
+- **No framework screens (React/Vue/etc.).** This is a UI mockup tool; HTML +
+  CSS + per-screen JS is the interactivity model. Don't add a framework.
+- **No video export in the main app** (needs ffmpeg/WASM). Real video is the
+  separate "CodeToPrototype" companion tool. In-app, only GIF (pure-JS).
+
 ## Product values
 
 - **Pets are rehomed, not discarded.** Never use delete/discard language for the
