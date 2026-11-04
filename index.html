@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Design + Prototype</title>
+  <link rel="stylesheet" href="/src/styles.css" />
+</head>
+<body>
+  <div id="app">
+    <aside class="sidebar">
+      <div class="sidebar-title">Screens</div>
+      <ul id="screen-list"></ul>
+    </aside>
+    <div class="main">
+      <header class="topbar">
+        <div class="screen-name" id="screen-name">Login</div>
+        <div class="device-switcher" id="device-switcher"></div>
+        <button class="topbar-btn" id="editor-toggle">Hide code</button>
+        <button class="topbar-btn" id="popout-toggle">Pop out</button>
+        <button class="topbar-btn" id="overview-toggle">Overview</button>
+        <div class="status" id="sync-status">connecting…</div>
+      </header>
+      <main class="layout" id="layout">
+        <section class="editor-pane">
+          <div class="tabs">
+            <button class="tab active" data-tab="html">HTML</button>
+            <button class="tab" data-tab="css">CSS</button>
+            <button class="tab" data-tab="globalCss">Global CSS</button>
+          </div>
+          <div id="editor-html" class="editor-container"></div>
+          <div id="editor-css" class="editor-container" hidden></div>
+          <div id="editor-globalCss" class="editor-container" hidden></div>
+          <div id="conflict-banner" class="conflict-banner" hidden></div>
+        </section>
+        <section class="preview-pane">
+          <div class="preview-stage" id="preview-stage">
+            <div class="preview-frame" id="preview-frame">
+              <iframe id="preview" sandbox="allow-scripts"></iframe>
+            </div>
+          </div>
+          <div class="preview-popout-note" id="preview-popout-note" hidden>
+            <div>Preview is open in a separate window.</div>
+            <button class="topbar-btn" id="popout-return">Pop preview back in</button>
+          </div>
+          <div class="preview-pan-overlay" id="preview-pan-overlay" hidden></div>
+          <div class="preview-controls" id="preview-controls">
+            <button class="preview-ctrl-btn" id="zoom-out" title="Zoom out">−</button>
+            <button class="preview-ctrl-btn" id="zoom-in" title="Zoom in">+</button>
+            <button class="preview-ctrl-btn" id="pan-toggle" title="Pan (drag to move)">✋</button>
+          </div>
+        </section>
+      </main>
+      <section class="overview-board" id="overview-board" hidden></section>
+    </div>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
