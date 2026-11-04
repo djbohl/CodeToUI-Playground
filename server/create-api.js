@@ -29,8 +29,8 @@ function pathToScreenFile(projectDir, absPath) {
   const parts = rel.split(path.sep);
   if (parts.length !== 2) return null;
   const [screen, filename] = parts;
-  const ext = path.extname(filename).slice(1); // 'html' | 'css'
-  if (ext !== "html" && ext !== "css") return null;
+  const ext = path.extname(filename).slice(1); // 'html' | 'css' | 'js'
+  if (ext !== "html" && ext !== "css" && ext !== "js") return null;
   return { screen, file: ext };
 }
 
@@ -186,8 +186,8 @@ export function createProtoApi({ projectsRoot, wsPort, initialProject }) {
       if (screenMatch && req.method === "POST") {
         const screen = decodeURIComponent(screenMatch[1]);
         const body = await readJsonBody(req);
-        const { file, content } = body; // file: 'html' | 'css'
-        if (file !== "html" && file !== "css") {
+        const { file, content } = body; // file: 'html' | 'css' | 'js'
+        if (file !== "html" && file !== "css" && file !== "js") {
           res.statusCode = 400;
           res.end("invalid file type");
           return;
