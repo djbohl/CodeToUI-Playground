@@ -3,7 +3,7 @@ import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import { ProjectWatcher } from "./watcher.js";
 import { readScreenFiles, readGlobalCss } from "./render-pipeline.js";
-import { reconcileScreens } from "./screens.js";
+import { reconcileScreens, createScreen, deleteScreen } from "./screens.js";
 import { assignStableIds } from "./stable-ids.js";
 import { readLinks, writeLinks } from "./links.js";
 import {
@@ -126,6 +126,28 @@ export function createProtoApi({ projectsRoot, wsPort, initialProject }) {
         const { config, screens } = await reconcileScreens(activeDir);
         const globalCss = await readGlobalCss(activeDir);
         json({ config, screens, globalCss, wsPort, activeProject: activeName });
+        return;
+      }
+
+      // --- Screens (pages) --------------------------------------------------
+      if (req.url === "/api/screens" && req.method === "POST") {
+        const body = await readJsonBody(req);
+        await createScreen(activeDir, body.name);
+        const { config, screens } = await reconcileScreens(activeDir);
+        json({ config, screens });
+        return;
+      }
+
+      const screensMatch = req.url.match(/^\/api\/screens\/([^/]+)$/);
+      if (screensMatch && req.method === "DELETE") {
+        const name = decodeURIComponent(screensMatch[1]);
+        await deleteScreen(activeDir, name);
+        // Drop any links on or pointing to the deleted screen.
+        const links = await readLinks(activeDir);
+        links.links = links.links.filter((l) => l.screen !== name && l.target !== name);
+        await writeLinks(activeDir, links);
+        const { config, screens } = await reconcileScreens(activeDir);
+        json({ config, screens });
         return;
       }
 
