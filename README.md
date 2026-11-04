@@ -132,10 +132,15 @@ resulting apps are unsigned; see the warning above.
   **repeating**), and set the angle. Copy any value (HEX, `rgb(...)`, or the
   full `*-gradient(...)`) to the clipboard to paste into your CSS.
 - **Export** — the **Export** button opens a modal. Pick which pages to
-  include, then export: a self-contained **Prototype** (`.html`, plays offline
-  by just opening it), the **Code** (`.zip` of HTML/CSS + `links.json`), or
-  **PDF** (via your browser's Save-as-PDF, one page each). Image / mockup-frame
-  / GIF / MP4 exports are coming (they need a headless-render pipeline).
+  include, then export:
+  - **No extra tools:** a self-contained **Prototype** (`.html`, plays offline),
+    or the **Code** (`.zip` of HTML/CSS/JS + `links.json`).
+  - **Rendered** (needs `npm install puppeteer`, optional): **Images** (`.png`
+    per screen, optionally wrapped in a device **mockup** frame — light/dark
+    desktop or phone) and a crisp **PDF** (one screen per page). Without
+    Puppeteer, PDF falls back to the browser's Save-as-PDF.
+  - **Coming:** an in-app **GIF** walkthrough (no extra tools); real **video**
+    export is planned for a separate **CodeToPrototype** companion tool.
 - **Pixel pet** — hatch a companion at the bottom of the sidebar; it bobs
   around, reacts when you pet it, and drops quips, app tips, and context-aware
   nudges. You can keep **up to two** pets (they stack), and you can **rehome** a
