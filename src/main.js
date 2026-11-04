@@ -1116,6 +1116,7 @@ exportPdfEl.addEventListener("click", async () => {
   const ok = openPrintWindow({
     screens,
     globalCss: globalCssView.state.doc.toString(),
+    deviceWidth: currentDeviceWidth, // selected mobile/tablet/desktop (null = Full)
     title: currentProjectEl.textContent,
   });
   exportStatus(ok ? "Opened print view — choose 'Save as PDF'." : "Popup blocked — allow popups and retry.");

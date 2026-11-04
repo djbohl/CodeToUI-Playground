@@ -178,26 +178,56 @@ export function buildZip(files) {
 }
 
 // --- PDF via the browser's print dialog -------------------------------------
-export function openPrintWindow({ screens, globalCss, title = "Prototype" }) {
+// Each screen is rendered at the chosen device width in a same-origin iframe,
+// measured once loaded (so nothing is clipped), and scaled to fit the printable
+// page width. Printing waits until every screen has loaded and sized.
+const PRINT_PAGE_WIDTH = 720; // approx printable width in px (Letter/A4 w/ margins)
+
+export function openPrintWindow({ screens, globalCss, deviceWidth, title = "Prototype" }) {
   const w = window.open("", "_blank");
   if (!w) return false;
-  const pages = screens
-    .map(
-      (s) =>
-        `<div class="pp"><iframe srcdoc="${escapeHtml(
-          `<!doctype html><html><head><meta charset=utf-8><style>${globalCss || ""}</style><style>${s.css || ""}</style></head><body>${s.html}</body></html>`
-        )}"></iframe></div>`
-    )
-    .join("");
-  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title>
+
+  const width = deviceWidth || 1280; // Full falls back to a desktop width
+  const scale = Math.min(1, PRINT_PAGE_WIDTH / width);
+
+  const doc = w.document;
+  doc.open();
+  doc.write(`<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title>
 <style>
-  body{margin:0}
-  .pp{break-after:page;height:100vh}
-  .pp iframe{border:0;width:100%;height:100%}
-  @media print { .pp{height:auto;min-height:100vh} }
-</style></head><body>${pages}
-<script>window.onload=function(){setTimeout(function(){window.print();},400);};<\/script>
-</body></html>`);
-  w.document.close();
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:#fff}
+  .page{margin:0 auto 16px;break-after:page;overflow:hidden;width:${width * scale}px}
+  .page:last-child{break-after:auto;margin-bottom:0}
+  .page iframe{border:0;display:block;width:${width}px;transform:scale(${scale});transform-origin:top left}
+  @page{margin:12mm}
+  @media print{.page{margin:0}}
+</style></head><body></body></html>`);
+  doc.close();
+
+  let pending = screens.length;
+  const finish = () => {
+    if (--pending === 0) setTimeout(() => { w.focus(); w.print(); }, 350);
+  };
+
+  for (const s of screens) {
+    const page = doc.createElement("div");
+    page.className = "page";
+    const f = doc.createElement("iframe");
+    f.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><style>${globalCss || ""}</style><style>${s.css || ""}</style></head><body>${s.html}</body></html>`;
+    f.onload = () => {
+      let h = 0;
+      try {
+        h = f.contentDocument.documentElement.scrollHeight;
+      } catch {
+        h = 0;
+      }
+      if (!h) h = 1000;
+      f.style.height = `${h}px`;
+      page.style.height = `${h * scale}px`;
+      finish();
+    };
+    page.appendChild(f);
+    doc.body.appendChild(page);
+  }
   return true;
 }
