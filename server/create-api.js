@@ -6,6 +6,7 @@ import { readScreenFiles, readGlobalCss } from "./render-pipeline.js";
 import { reconcileScreens, createScreen, deleteScreen } from "./screens.js";
 import { assignStableIds } from "./stable-ids.js";
 import { readLinks, writeLinks } from "./links.js";
+import { screenshotScreens, pdfScreens, closeBrowser } from "./render-export.js";
 import {
   listProjects,
   scaffoldProject,
@@ -162,6 +163,41 @@ export function createProtoApi({ projectsRoot, wsPort, initialProject }) {
         return;
       }
 
+      // --- Headless exports (optional Puppeteer) ---------------------------
+      if (req.url === "/api/export/images" && req.method === "POST") {
+        const body = await readJsonBody(req);
+        try {
+          const files = await screenshotScreens({
+            projectDir: activeDir,
+            screens: body.screens || [],
+            deviceWidth: body.deviceWidth || 1280,
+            mockup: body.mockup || "none",
+          });
+          json({ files });
+        } catch (e) {
+          if (e.code === "NO_PUPPETEER") { res.statusCode = 501; res.end(e.message); return; }
+          throw e;
+        }
+        return;
+      }
+
+      if (req.url === "/api/export/pdf" && req.method === "POST") {
+        const body = await readJsonBody(req);
+        try {
+          const pdf = await pdfScreens({
+            projectDir: activeDir,
+            screens: body.screens || [],
+            deviceWidth: body.deviceWidth || 1280,
+          });
+          res.setHeader("Content-Type", "application/pdf");
+          res.end(Buffer.from(pdf));
+        } catch (e) {
+          if (e.code === "NO_PUPPETEER") { res.statusCode = 501; res.end(e.message); return; }
+          throw e;
+        }
+        return;
+      }
+
       if (req.url === "/api/global-css" && req.method === "GET") {
         json({ content: await readGlobalCss(activeDir) });
         return;
@@ -210,6 +246,7 @@ export function createProtoApi({ projectsRoot, wsPort, initialProject }) {
   function close() {
     watcher?.close();
     wss.close();
+    closeBrowser();
   }
 
   return { middleware, close };
