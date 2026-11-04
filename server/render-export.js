@@ -98,27 +98,55 @@ export async function screenshotScreens({ projectDir, screens, deviceWidth = 128
   return out;
 }
 
-/** Multi-page PDF: one screen per page (built from the screenshots). */
-export async function pdfScreens({ projectDir, screens, deviceWidth = 1280, mockup = "none" }) {
+// Read a PNG's pixel dimensions from its header (no image library needed).
+function pngSize(b64) {
+  const buf = Buffer.from(b64, "base64");
+  return { w: buf.readUInt32BE(16), h: buf.readUInt32BE(20) };
+}
+
+/**
+ * Multi-page PDF, one screen per page. `pageSize`:
+ *   "a4"     — each screen centered on an A4 page, scaled to fit (default).
+ *   "screen" — each page is exactly the screen's own size (tight, no margins),
+ *              via per-page CSS @page sizes (Chromium honors preferCSSPageSize).
+ */
+export async function pdfScreens({ projectDir, screens, deviceWidth = 1280, mockup = "none", pageSize = "a4" }) {
   const shots = await screenshotScreens({ projectDir, screens, deviceWidth, mockup });
   const browser = await getBrowser();
   const page = await browser.newPage();
+  const DSF = 2; // deviceScaleFactor used for screenshots
   try {
-    const imgs = shots
-      .map((s) => `<div class="pg"><img src="data:image/png;base64,${s.b64}"></div>`)
-      .join("");
-    // Each screen is centered on its own page and scaled DOWN to fit within the
-    // printable area (aspect preserved), so tall screens don't overflow/split.
-    const doc = `<!doctype html><html><head><meta charset="utf-8"><style>
-      @page{size:A4;margin:0}
-      html,body{margin:0;padding:0}
-      .pg{box-sizing:border-box;width:100vw;height:100vh;padding:10mm;display:flex;
-          align-items:center;justify-content:center;overflow:hidden;page-break-after:always}
-      .pg:last-child{page-break-after:auto}
-      .pg img{max-width:100%;max-height:100%;display:block}
-    </style></head><body>${imgs}</body></html>`;
+    let doc;
+    if (pageSize === "screen") {
+      const styles = [];
+      const body = [];
+      shots.forEach((s, i) => {
+        const { w, h } = pngSize(s.b64);
+        const cw = Math.round(w / DSF);
+        const ch = Math.round(h / DSF);
+        styles.push(`@page p${i}{size:${cw}px ${ch}px;margin:0}.s${i}{page:p${i}}`);
+        body.push(`<div class="pg s${i}"><img src="data:image/png;base64,${s.b64}" style="width:${cw}px;height:${ch}px"></div>`);
+      });
+      doc = `<!doctype html><html><head><meta charset="utf-8"><style>
+        html,body{margin:0;padding:0}${styles.join("")}
+        .pg{page-break-after:always}.pg:last-child{page-break-after:auto}
+        img{display:block}
+      </style></head><body>${body.join("")}</body></html>`;
+    } else {
+      const imgs = shots
+        .map((s) => `<div class="pg"><img src="data:image/png;base64,${s.b64}"></div>`)
+        .join("");
+      doc = `<!doctype html><html><head><meta charset="utf-8"><style>
+        @page{size:A4;margin:0}
+        html,body{margin:0;padding:0}
+        .pg{box-sizing:border-box;width:100vw;height:100vh;padding:10mm;display:flex;
+            align-items:center;justify-content:center;overflow:hidden;page-break-after:always}
+        .pg:last-child{page-break-after:auto}
+        .pg img{max-width:100%;max-height:100%;display:block}
+      </style></head><body>${imgs}</body></html>`;
+    }
     await page.setContent(doc, { waitUntil: "load" });
-    const pdf = await page.pdf({ printBackground: true, format: "A4", preferCSSPageSize: true });
+    const pdf = await page.pdf({ printBackground: true, preferCSSPageSize: true });
     return pdf;
   } finally {
     await page.close();

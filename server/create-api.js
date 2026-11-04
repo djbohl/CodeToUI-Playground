@@ -203,6 +203,7 @@ export function createProtoApi({ projectsRoot, wsPort, initialProject }) {
             screens: body.screens || [],
             deviceWidth: body.deviceWidth || 1280,
             mockup: body.mockup || "none",
+            pageSize: body.pageSize || "a4",
           });
           res.setHeader("Content-Type", "application/pdf");
           res.end(Buffer.from(pdf));
