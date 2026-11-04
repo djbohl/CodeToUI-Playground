@@ -1,20 +1,64 @@
 {
-  "name": "code-design",
+  "name": "codetoui-playground",
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "description": "Write code to quickly build UI mockups and click-through prototypes, with a live preview over a plain folder of files.",
+  "license": "CC-BY-NC-4.0",
+  "author": "Donna-Jo Bohl",
+  "main": "electron/main.js",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
-    "dev": "vite"
+    "dev": "vite",
+    "build": "vite build",
+    "electron": "npm run build && electron .",
+    "app:build": "npm run build && electron-builder",
+    "app:build:mac": "npm run build && electron-builder --mac",
+    "app:build:win": "npm run build && electron-builder --win"
   },
   "dependencies": {
-    "@codemirror/lang-css": "^6.3.1",
-    "@codemirror/lang-html": "^6.4.9",
     "chokidar": "^3.6.0",
-    "codemirror": "^6.0.1",
+    "connect": "^3.7.0",
     "parse5": "^8.1.0",
+    "serve-static": "^1.16.2",
     "ws": "^8.18.0"
   },
   "devDependencies": {
+    "@codemirror/lang-css": "^6.3.1",
+    "@codemirror/lang-html": "^6.4.9",
+    "codemirror": "^6.0.1",
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3",
     "vite": "^5.4.11"
+  },
+  "build": {
+    "appId": "com.donnajobohl.codetouiplayground",
+    "productName": "CodeToUI Playground",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**",
+      "server/**",
+      "package.json"
+    ],
+    "extraResources": [
+      { "from": "dist", "to": "dist" },
+      { "from": "project", "to": "project" }
+    ],
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.developer-tools"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    }
   }
 }

@@ -5,6 +5,9 @@ node_modules/
 dist/
 .vite/
 
+# Packaged desktop-app installers (electron-builder output)
+release/
+
 # Generated prototype exports (standalone HTML, PNGs, zips)
 project/exports/
 
