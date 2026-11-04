@@ -58,6 +58,8 @@ let currentScreens = [];
 let linksData = { version: 1, links: [] };
 let linkMode = false;
 let selectedProtoId = null;
+let everPlayed = false;
+let petCtl = null; // pixel-pet controller (set in main)
 
 // --- Theme (light/dark) -----------------------------------------------------
 const THEME_KEY = "codetoui-theme";
@@ -608,6 +610,7 @@ async function saveLink() {
   await persistLinks();
   linkRemoveEl.hidden = false;
   renderPreview(); // re-outline linked elements
+  petCtl?.react("linkSaved");
 }
 
 async function removeLink() {
@@ -816,6 +819,7 @@ function playBack() {
 }
 
 async function enterPlayMode(startScreen) {
+  everPlayed = true;
   playHistory = [];
   closeAllOverlays();
   playModeEl.hidden = false;
@@ -1116,7 +1120,14 @@ projectsModalEl.addEventListener("click", (e) => {
 
 async function main() {
   setupTabs();
-  initPet();
+  petCtl = initPet({
+    getContext: () => ({
+      screenCount: currentScreens.filter((s) => !s.missing).length,
+      linkCount: linksData.links.length,
+      everPlayed,
+      linkMode,
+    }),
+  });
   initColorPicker();
 
   const { config, screens, globalCss: globalCssContent, wsPort, activeProject } =

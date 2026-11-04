@@ -745,8 +745,23 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
   position: relative;
+}
+
+/* One pet (or the hatch-an-egg slot). Stacked pets are separated by a dashed
+   divider so a second pet reads as sitting above the first. */
+.pet {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.pet:not(:last-child) {
+  padding-bottom: 10px;
+  border-bottom: 2px dashed var(--border);
 }
 
 .pet-bubble {
@@ -834,6 +849,15 @@ body {
   100% { transform: scale(1) rotate(0); opacity: 1; }
 }
 
+.pet-sprite.leaving {
+  animation: pet-leave 1.6s ease forwards;
+}
+
+@keyframes pet-leave {
+  0% { transform: translateY(0) rotate(0); opacity: 1; }
+  100% { transform: translateY(-30px) rotate(12deg); opacity: 0; }
+}
+
 .pet-caption {
   font-size: 10px;
   text-transform: uppercase;
@@ -842,12 +866,39 @@ body {
   text-align: center;
 }
 
-.pet-hatch {
+.pet-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
   width: 100%;
 }
 
-.pet-hatch[hidden] {
-  display: none;
+.pet-choice .topbar-btn {
+  width: 100%;
+}
+
+.pet-soon {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.pet-rehome {
+  font-family: var(--font-ui);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+}
+
+.pet-rehome:hover {
+  color: var(--accent);
 }
 
 /* ------------------------------------------------------------------ *
@@ -965,6 +1016,33 @@ body {
   display: none;
 }
 
+.color-grad-opts {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.color-grad-opts > label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.color-grad-opts select {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 2px solid var(--border);
+  padding: 4px 6px;
+}
+
 .color-stops {
   display: flex;
   align-items: center;
@@ -973,22 +1051,60 @@ body {
   flex-wrap: wrap;
 }
 
-.color-stop {
-  font-family: var(--font-ui);
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--muted);
-  background: var(--surface-2);
+/* One gradient stop: swatch (click to edit), position %, and remove. */
+.color-stop-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   border: 2px solid var(--border);
   box-shadow: 2px 2px 0 var(--shadow);
-  padding: 5px 8px;
+  padding: 3px;
+  background: var(--surface-2);
+}
+
+.color-stop-chip.active {
+  border-color: var(--accent);
+}
+
+.color-stop-swatch {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--border-strong);
+  padding: 0;
   cursor: pointer;
 }
 
-.color-stop.active {
-  border-color: var(--accent);
+.color-stop-pos {
+  width: 42px;
+  font-family: var(--font-ui);
+  font-size: 11px;
   color: var(--text);
+  background: var(--bg);
+  border: 2px solid var(--border);
+  padding: 3px 4px;
+}
+
+.color-stop-del {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.color-stop-del:hover {
+  color: var(--danger);
+}
+
+.color-stop-del:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+#color-stop-add {
+  margin-bottom: 10px;
 }
 
 .color-angle-label {

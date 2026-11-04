@@ -14,14 +14,7 @@
       </button>
       <div class="sidebar-title">Screens</div>
       <ul id="screen-list"></ul>
-      <div class="pet-dock" id="pet-dock">
-        <div class="pet-bubble" id="pet-bubble" hidden></div>
-        <div class="pet-stage">
-          <button class="pet-sprite" id="pet-sprite" title="Pet me">🥚</button>
-        </div>
-        <div class="pet-caption" id="pet-caption">A mysterious egg…</div>
-        <button class="topbar-btn pet-hatch" id="pet-hatch">Hatch!</button>
-      </div>
+      <div class="pet-dock" id="pet-dock"></div>
     </aside>
     <div class="main">
       <header class="topbar">
@@ -133,13 +126,23 @@
         <div class="color-swatch" id="color-swatch"></div>
       </div>
       <div class="color-gradient" id="color-gradient" hidden>
-        <div class="color-stops">
-          <button class="color-stop active" id="color-stop-a">Stop 1</button>
-          <button class="color-stop" id="color-stop-b">Stop 2</button>
+        <div class="color-grad-opts">
+          <label>Type
+            <select id="color-grad-type">
+              <option value="linear">Linear</option>
+              <option value="radial">Radial</option>
+              <option value="conic">Conic</option>
+            </select>
+          </label>
           <label class="color-angle-label">Angle
             <input id="color-angle" type="number" min="0" max="360" value="90" />
           </label>
+          <label class="color-grad-repeat-label">
+            <input id="color-grad-repeat" type="checkbox" /> Repeating
+          </label>
         </div>
+        <div class="color-stops" id="color-stops"></div>
+        <button class="topbar-btn" id="color-stop-add">+ Add stop</button>
         <div class="color-grad-preview" id="color-grad-preview"></div>
       </div>
       <div class="color-fields">
