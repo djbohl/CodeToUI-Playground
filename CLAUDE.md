@@ -74,8 +74,14 @@ connect, serve-static, parse5, ws) are kept clean.
 
 ## Scope decisions
 
-- **No framework screens (React/Vue/etc.).** This is a UI mockup tool; HTML +
-  CSS + per-screen JS is the interactivity model. Don't add a framework.
+- **React screens are planned** (per-screen Vanilla ⇄ React toggle). A React
+  screen is a single JSX component file + CSS (JSX replaces HTML). Bundle
+  React + ReactDOM + Babel locally (offline-safe), compile JSX in the preview
+  live and pre-compile for export. Insert tools adapt to the active file type
+  (HTML snippets vs JSX snippets). Link/Play prototyping is Vanilla-only for now
+  (links need data-proto-id in parsed HTML; JSX isn't parsed that way).
+- No other frameworks (Vue/Svelte/etc.) and **no native (Swift)** — can't
+  render in an HTML iframe.
 - **No video export in the main app** (needs ffmpeg/WASM). Real video is the
   separate "CodeToPrototype" companion tool. In-app, only GIF (pure-JS).
 
