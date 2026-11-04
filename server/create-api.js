@@ -6,6 +6,13 @@ import { readScreenFiles, readGlobalCss } from "./render-pipeline.js";
 import { reconcileScreens } from "./screens.js";
 import { assignStableIds } from "./stable-ids.js";
 import { readLinks, writeLinks } from "./links.js";
+import {
+  listProjects,
+  scaffoldProject,
+  deleteProject,
+  readActive,
+  writeActive,
+} from "./projects.js";
 
 async function readJsonBody(req) {
   const chunks = [];
@@ -13,35 +20,32 @@ async function readJsonBody(req) {
   return JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}");
 }
 
+function pathToScreenFile(projectDir, absPath) {
+  if (absPath === path.join(projectDir, "global.css")) {
+    return { screen: null, file: "globalCss" };
+  }
+  // <project>/screens/<Screen>/<Screen>.(html|css)
+  const rel = path.relative(path.join(projectDir, "screens"), absPath);
+  const parts = rel.split(path.sep);
+  if (parts.length !== 2) return null;
+  const [screen, filename] = parts;
+  const ext = path.extname(filename).slice(1); // 'html' | 'css'
+  if (ext !== "html" && ext !== "css") return null;
+  return { screen, file: ext };
+}
+
 /**
  * The whole live-sync backend, independent of how it's hosted: it watches the
- * project folder, pushes genuine external edits over a WebSocket, and serves
- * the read/write REST API. The Vite dev plugin mounts this onto Vite's connect
- * server; the packaged Electron app mounts the same thing onto its own http
- * server. Keeping it in one place means dev and the desktop build can never
- * drift apart.
+ * active project folder, pushes genuine external edits over a WebSocket, and
+ * serves the read/write REST API. It operates on one *active* project at a
+ * time within a projects root, and can switch between projects (re-pointing the
+ * file watcher) without restarting. The Vite dev plugin and the packaged
+ * Electron app both mount this, so dev and desktop can't drift apart.
  */
-export function createProtoApi({ projectDir, wsPort }) {
-  const globalCssPath = path.join(projectDir, "global.css");
-  const screensDir = path.join(projectDir, "screens");
+export function createProtoApi({ projectsRoot, wsPort, initialProject }) {
+  let activeName = initialProject;
+  let activeDir = path.join(projectsRoot, activeName);
 
-  function pathToScreenFile(absPath) {
-    if (absPath === globalCssPath) {
-      return { screen: null, file: "globalCss" };
-    }
-    // project/screens/<Screen>/<Screen>.(html|css)
-    const rel = path.relative(screensDir, absPath);
-    const parts = rel.split(path.sep);
-    if (parts.length !== 2) return null;
-    const [screen, filename] = parts;
-    const ext = path.extname(filename).slice(1); // 'html' | 'css'
-    if (ext !== "html" && ext !== "css") return null;
-    return { screen, file: ext };
-  }
-
-  // Standalone port, deliberately NOT sharing the host's httpServer: on Vite,
-  // sharing the 'upgrade' event with its internal HMR WebSocket caused flaky
-  // connect/disconnect loops. A dedicated port sidesteps that everywhere.
   const wss = new WebSocketServer({ port: wsPort });
 
   function broadcast(message) {
@@ -51,63 +55,109 @@ export function createProtoApi({ projectDir, wsPort }) {
     }
   }
 
-  const watcher = new ProjectWatcher(projectDir, {
-    onExternalChange({ absPath, content }) {
-      const info = pathToScreenFile(absPath);
-      if (!info) return;
-      broadcast({ type: "externalChange", screen: info.screen, file: info.file, content });
-    },
-  });
+  let watcher = null;
+  function startWatcher() {
+    if (watcher) watcher.close();
+    watcher = new ProjectWatcher(activeDir, {
+      onExternalChange({ absPath, content }) {
+        const info = pathToScreenFile(activeDir, absPath);
+        if (!info) return;
+        broadcast({ type: "externalChange", screen: info.screen, file: info.file, content });
+      },
+    });
+  }
+  startWatcher();
+
+  async function setActive(name) {
+    activeName = name;
+    activeDir = path.join(projectsRoot, name);
+    startWatcher();
+    await writeActive(projectsRoot, name);
+  }
 
   async function middleware(req, res, next) {
     if (!req.url?.startsWith("/api/")) return next();
 
+    const json = (obj) => {
+      res.setHeader("Content-Type", "application/json");
+      res.end(JSON.stringify(obj));
+    };
+
     try {
+      // --- Projects ---------------------------------------------------------
+      if (req.url === "/api/projects" && req.method === "GET") {
+        json({ projects: await listProjects(projectsRoot), active: activeName });
+        return;
+      }
+
+      if (req.url === "/api/projects" && req.method === "POST") {
+        const body = await readJsonBody(req);
+        await scaffoldProject(projectsRoot, body.name);
+        json({ projects: await listProjects(projectsRoot), active: activeName });
+        return;
+      }
+
+      if (req.url === "/api/projects/active" && req.method === "POST") {
+        const body = await readJsonBody(req);
+        const projects = await listProjects(projectsRoot);
+        if (!projects.includes(body.name)) {
+          res.statusCode = 404;
+          res.end("no such project");
+          return;
+        }
+        await setActive(body.name);
+        json({ active: activeName });
+        return;
+      }
+
+      const projMatch = req.url.match(/^\/api\/projects\/([^/]+)$/);
+      if (projMatch && req.method === "DELETE") {
+        const name = decodeURIComponent(projMatch[1]);
+        await deleteProject(projectsRoot, name);
+        if (name === activeName) {
+          await setActive(await readActive(projectsRoot));
+        }
+        json({ projects: await listProjects(projectsRoot), active: activeName });
+        return;
+      }
+
+      // --- Active project content ------------------------------------------
       if (req.url === "/api/project" && req.method === "GET") {
-        const { config, screens } = await reconcileScreens(projectDir);
-        const globalCss = await readGlobalCss(projectDir);
-        res.setHeader("Content-Type", "application/json");
-        res.end(JSON.stringify({ config, screens, globalCss, wsPort }));
+        const { config, screens } = await reconcileScreens(activeDir);
+        const globalCss = await readGlobalCss(activeDir);
+        json({ config, screens, globalCss, wsPort, activeProject: activeName });
         return;
       }
 
       if (req.url === "/api/links" && req.method === "GET") {
-        const data = await readLinks(projectDir);
-        res.setHeader("Content-Type", "application/json");
-        res.end(JSON.stringify(data));
+        json(await readLinks(activeDir));
         return;
       }
 
       if (req.url === "/api/links" && req.method === "POST") {
         const body = await readJsonBody(req);
-        const out = await writeLinks(projectDir, body);
-        res.setHeader("Content-Type", "application/json");
-        res.end(JSON.stringify(out));
+        json(await writeLinks(activeDir, body));
         return;
       }
 
       if (req.url === "/api/global-css" && req.method === "GET") {
-        const content = await readGlobalCss(projectDir);
-        res.setHeader("Content-Type", "application/json");
-        res.end(JSON.stringify({ content }));
+        json({ content: await readGlobalCss(activeDir) });
         return;
       }
 
       if (req.url === "/api/global-css" && req.method === "POST") {
         const body = await readJsonBody(req);
-        watcher.recordSelfWrite(globalCssPath, body.content);
-        await writeFile(globalCssPath, body.content, "utf8");
-        res.setHeader("Content-Type", "application/json");
-        res.end(JSON.stringify({ ok: true }));
+        const filePath = path.join(activeDir, "global.css");
+        watcher.recordSelfWrite(filePath, body.content);
+        await writeFile(filePath, body.content, "utf8");
+        json({ ok: true });
         return;
       }
 
       const screenMatch = req.url.match(/^\/api\/screen\/([^/]+)$/);
       if (screenMatch && req.method === "GET") {
         const screen = decodeURIComponent(screenMatch[1]);
-        const files = await readScreenFiles(projectDir, screen);
-        res.setHeader("Content-Type", "application/json");
-        res.end(JSON.stringify(files));
+        json(await readScreenFiles(activeDir, screen));
         return;
       }
 
@@ -121,11 +171,10 @@ export function createProtoApi({ projectDir, wsPort }) {
           return;
         }
         const finalContent = file === "html" ? assignStableIds(content) : content;
-        const filePath = path.join(screensDir, screen, `${screen}.${file}`);
+        const filePath = path.join(activeDir, "screens", screen, `${screen}.${file}`);
         watcher.recordSelfWrite(filePath, finalContent);
         await writeFile(filePath, finalContent, "utf8");
-        res.setHeader("Content-Type", "application/json");
-        res.end(JSON.stringify({ ok: true, content: finalContent }));
+        json({ ok: true, content: finalContent });
         return;
       }
 
@@ -137,7 +186,7 @@ export function createProtoApi({ projectDir, wsPort }) {
   }
 
   function close() {
-    watcher.close();
+    watcher?.close();
     wss.close();
   }
 
