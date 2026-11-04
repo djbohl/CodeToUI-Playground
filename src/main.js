@@ -37,6 +37,7 @@ const playFrameEl = document.getElementById("play-frame");
 const playScreenNameEl = document.getElementById("play-screen-name");
 const playBackEl = document.getElementById("play-back");
 const playExitEl = document.getElementById("play-exit");
+const themeToggleEl = document.getElementById("theme-toggle");
 
 let deviceSizes = {};
 let currentScreen = null;
@@ -44,6 +45,23 @@ let currentScreens = [];
 let linksData = { version: 1, links: [] };
 let linkMode = false;
 let selectedProtoId = null;
+
+// --- Theme (light/dark) -----------------------------------------------------
+const THEME_KEY = "codetoui-theme";
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  themeToggleEl.textContent = theme === "light" ? "☀ Light" : "☾ Dark";
+}
+
+themeToggleEl.addEventListener("click", () => {
+  const next =
+    document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
+  localStorage.setItem(THEME_KEY, next);
+  applyTheme(next);
+});
+
+applyTheme(localStorage.getItem(THEME_KEY) || "dark");
 let htmlView = null;
 let cssView = null;
 let globalCssView = null;

@@ -1,3 +1,49 @@
+/* ------------------------------------------------------------------ *
+ * Theme tokens. Dark is the baseline (:root); light overrides via the
+ * data-theme="light" attribute the toggle stamps on <html>.
+ * ------------------------------------------------------------------ */
+:root {
+  --bg: #0d0b17;
+  --surface: #16132a;
+  --surface-2: #1f1b38;
+  --canvas-bg: #07060f;
+  --grid: rgba(120, 90, 200, 0.10);
+  --border: #3a2f66;
+  --border-strong: #574893;
+  --text: #ece9fb;
+  --muted: #9a93c7;
+  --accent: #ff4d9d;
+  --accent-2: #38f9d7;
+  --accent-ink: #0d0b17;
+  --ok: #4dff9e;
+  --danger: #ff5c7a;
+  --warn-bg: #3a2d10;
+  --warn-text: #ffd23f;
+  --shadow: rgba(0, 0, 0, 0.55);
+
+  --font-ui: ui-monospace, "SF Mono", "Cascadia Code", "Segoe UI Mono", Menlo, Consolas, monospace;
+}
+
+:root[data-theme="light"] {
+  --bg: #e6e3d2;
+  --surface: #f5f2e4;
+  --surface-2: #fffdf3;
+  --canvas-bg: #d9d6c4;
+  --grid: rgba(60, 50, 90, 0.10);
+  --border: #2b2740;
+  --border-strong: #4a4468;
+  --text: #221f33;
+  --muted: #6b6480;
+  --accent: #d6246e;
+  --accent-2: #0d9488;
+  --accent-ink: #fffdf3;
+  --ok: #138a52;
+  --danger: #c0304a;
+  --warn-bg: #ffe9a8;
+  --warn-text: #7a5a00;
+  --shadow: rgba(40, 30, 70, 0.28);
+}
+
 * { box-sizing: border-box; }
 
 html, body, #app {
@@ -6,19 +52,76 @@ html, body, #app {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: #0b0d11;
-  color: #e8eaed;
+  font-family: var(--font-ui);
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+  color: var(--text);
+  font-size: 13px;
 }
 
 #app {
   display: flex;
 }
 
+/* ------------------------------------------------------------------ *
+ * Shared pixel-button treatment: square, chunky border, hard shadow,
+ * presses down when active/clicked.
+ * ------------------------------------------------------------------ */
+.topbar-btn,
+.device-switcher button,
+.preview-ctrl-btn,
+.conflict-banner button,
+.link-panel-controls select {
+  font-family: var(--font-ui);
+  background: var(--surface-2);
+  border: 2px solid var(--border);
+  color: var(--muted);
+  border-radius: 0;
+  box-shadow: 2px 2px 0 var(--shadow);
+  cursor: pointer;
+}
+
+.topbar-btn,
+.device-switcher button {
+  padding: 5px 10px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.topbar-btn:hover,
+.device-switcher button:hover,
+.preview-ctrl-btn:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.topbar-btn:active,
+.device-switcher button:active,
+.preview-ctrl-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+.topbar-btn.active,
+.device-switcher button.active,
+.preview-ctrl-btn.active {
+  color: var(--accent-ink);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ------------------------------------------------------------------ *
+ * Sidebar
+ * ------------------------------------------------------------------ */
 .sidebar {
-  width: 180px;
+  width: 190px;
   flex-shrink: 0;
-  border-right: 1px solid #22262f;
+  border-right: 2px solid var(--border);
+  background: var(--surface);
   padding: 12px;
   overflow-y: auto;
 }
@@ -26,9 +129,9 @@ body {
 .sidebar-title {
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #9aa0a6;
-  margin-bottom: 8px;
+  letter-spacing: 0.1em;
+  color: var(--accent-2);
+  margin-bottom: 10px;
 }
 
 #screen-list {
@@ -38,26 +141,38 @@ body {
 }
 
 #screen-list li {
-  padding: 6px 8px;
-  border-radius: 6px;
+  padding: 7px 8px;
+  border: 2px solid transparent;
+  border-radius: 0;
   cursor: pointer;
-  font-size: 13px;
-  color: #c3c7cf;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 4px;
 }
 
 #screen-list li:hover {
-  background: #171a21;
+  border-color: var(--border);
+  color: var(--text);
 }
 
 #screen-list li.active {
-  background: #1d2129;
-  color: #fff;
+  background: var(--surface-2);
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+#screen-list li.active::before {
+  content: "\25B8 ";
+  color: var(--accent);
 }
 
 #screen-list li.missing {
-  color: #e05a5a;
+  color: var(--danger);
 }
 
+/* ------------------------------------------------------------------ *
+ * Top bar
+ * ------------------------------------------------------------------ */
 .main {
   flex: 1;
   display: flex;
@@ -69,59 +184,40 @@ body {
 .topbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 8px 16px;
-  border-bottom: 1px solid #22262f;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 14px;
+  border-bottom: 2px solid var(--border);
+  background: var(--surface);
   font-size: 13px;
 }
 
-.status {
-  color: #9aa0a6;
+.screen-name {
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent-2);
+  margin-right: auto;
 }
 
-.status.connected { color: #5bd98a; }
-.status.disconnected { color: #e05a5a; }
+.status {
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 11px;
+}
+
+.status.connected { color: var(--ok); }
+.status.disconnected { color: var(--danger); }
 
 .device-switcher {
   display: flex;
   gap: 6px;
 }
 
-.device-switcher button {
-  background: none;
-  border: 1px solid #2a2e37;
-  color: #9aa0a6;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.device-switcher button.active {
-  color: #fff;
-  border-color: #5b8cff;
-}
-
-.topbar-btn {
-  background: none;
-  border: 1px solid #2a2e37;
-  color: #9aa0a6;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.topbar-btn:hover {
-  border-color: #3a414f;
-}
-
-.topbar-btn.active {
-  color: #fff;
-  border-color: #5b8cff;
-}
-
+/* ------------------------------------------------------------------ *
+ * Overview board
+ * ------------------------------------------------------------------ */
 .overview-board[hidden] {
   display: none;
 }
@@ -134,6 +230,7 @@ body {
   flex-wrap: wrap;
   gap: 24px;
   align-content: flex-start;
+  background: var(--canvas-bg);
 }
 
 .overview-card {
@@ -144,21 +241,23 @@ body {
 }
 
 .overview-card-label {
-  font-size: 13px;
-  color: #c3c7cf;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
 }
 
 .overview-thumb-box {
   width: 280px;
   height: 200px;
   overflow: hidden;
-  border: 1px solid #22262f;
-  border-radius: 8px;
-  background: #0f1115;
+  border: 2px solid var(--border);
+  box-shadow: 4px 4px 0 var(--shadow);
+  background: var(--surface-2);
 }
 
 .overview-card:hover .overview-thumb-box {
-  border-color: #5b8cff;
+  border-color: var(--accent);
 }
 
 .overview-thumb-box iframe {
@@ -166,6 +265,9 @@ body {
   pointer-events: none;
 }
 
+/* ------------------------------------------------------------------ *
+ * Editor
+ * ------------------------------------------------------------------ */
 .layout {
   flex: 1;
   display: grid;
@@ -185,27 +287,32 @@ body {
 .editor-pane {
   display: flex;
   flex-direction: column;
-  border-right: 1px solid #22262f;
+  border-right: 2px solid var(--border);
   min-width: 0;
 }
 
 .tabs {
   display: flex;
-  border-bottom: 1px solid #22262f;
+  border-bottom: 2px solid var(--border);
+  background: var(--surface);
 }
 
 .tab {
   background: none;
   border: none;
-  color: #9aa0a6;
-  padding: 8px 16px;
+  border-bottom: 3px solid transparent;
+  color: var(--muted);
+  padding: 8px 14px;
   cursor: pointer;
-  font-size: 13px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .tab.active {
-  color: #e8eaed;
-  border-bottom: 2px solid #5b8cff;
+  color: var(--text);
+  border-bottom-color: var(--accent);
 }
 
 .editor-container {
@@ -219,10 +326,10 @@ body {
 }
 
 .conflict-banner {
-  background: #4a3a14;
-  color: #ffd27a;
+  background: var(--warn-bg);
+  color: var(--warn-text);
   padding: 8px 16px;
-  font-size: 13px;
+  font-size: 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -230,14 +337,17 @@ body {
 }
 
 .conflict-banner button {
-  background: #5b8cff;
-  border: none;
-  color: white;
-  padding: 4px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 12px;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  padding: 5px 10px;
+  font-size: 11px;
+  text-transform: uppercase;
 }
+
+/* ------------------------------------------------------------------ *
+ * Preview pane
+ * ------------------------------------------------------------------ */
 
 /* Fixed shell: positioning context for the controls/overlay, which stay put
    while the inner scroller moves. */
@@ -245,7 +355,11 @@ body {
   position: relative;
   min-width: 0;
   overflow: hidden;
-  background: #06070a;
+  background-color: var(--canvas-bg);
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
 /* The actual scroll viewport. `safe center` keeps the stage centered while it
@@ -297,27 +411,14 @@ body {
 }
 
 .preview-ctrl-btn {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(20, 23, 29, 0.9);
-  border: 1px solid #2a2e37;
-  color: #e8eaed;
-  border-radius: 6px;
+  color: var(--text);
   font-size: 16px;
   line-height: 1;
-  cursor: pointer;
-}
-
-.preview-ctrl-btn:hover {
-  border-color: #3a414f;
-}
-
-.preview-ctrl-btn.active {
-  border-color: #5b8cff;
-  color: #fff;
 }
 
 /* Link-mode panel: pinned to the bottom of the preview pane. */
@@ -330,12 +431,12 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 10px 12px;
-  background: rgba(20, 23, 29, 0.96);
-  border: 1px solid #2a2e37;
-  border-radius: 8px;
-  font-size: 13px;
-  color: #c3c7cf;
+  padding: 12px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  box-shadow: 4px 4px 0 var(--shadow);
+  font-size: 12px;
+  color: var(--text);
 }
 
 .link-panel[hidden] {
@@ -343,7 +444,9 @@ body {
 }
 
 .link-panel-label {
-  color: #9aa0a6;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .link-panel-controls {
@@ -361,26 +464,28 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #9aa0a6;
+  color: var(--muted);
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.04em;
 }
 
 .link-panel-controls select {
-  background: #0f1115;
-  color: #e8eaed;
-  border: 1px solid #2a2e37;
-  border-radius: 6px;
-  padding: 4px 8px;
-  font-size: 13px;
+  color: var(--text);
+  padding: 5px 8px;
+  font-size: 12px;
 }
 
-/* Play mode: full-screen click-through runner. */
+/* ------------------------------------------------------------------ *
+ * Play mode
+ * ------------------------------------------------------------------ */
 .play-mode {
   position: fixed;
   inset: 0;
   z-index: 100;
   display: flex;
   flex-direction: column;
-  background: #06070a;
+  background: var(--canvas-bg);
 }
 
 .play-mode[hidden] {
@@ -393,12 +498,15 @@ body {
   justify-content: space-between;
   gap: 16px;
   padding: 8px 16px;
-  border-bottom: 1px solid #22262f;
+  border-bottom: 2px solid var(--border);
+  background: var(--surface);
 }
 
 .play-screen-name {
-  font-size: 13px;
-  color: #c3c7cf;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent-2);
 }
 
 .play-stage {
@@ -406,7 +514,7 @@ body {
   min-height: 0;
   display: flex;
   justify-content: center;
-  background: #06070a;
+  background: var(--canvas-bg);
 }
 
 #play-frame {
@@ -414,8 +522,12 @@ body {
   max-width: 1280px;
   height: 100%;
   border: none;
-  background: #0f1115;
+  background: #fff;
 }
+
+/* ------------------------------------------------------------------ *
+ * Preview stage / frame geometry (theme-independent)
+ * ------------------------------------------------------------------ */
 
 /* Sized to the POST-scale dimensions so it drives the scrollable area: when
    zoomed in past the pane it overflows and the pane scrollbars let you pan. */
@@ -432,8 +544,10 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 12px;
-  color: #9aa0a6;
-  font-size: 13px;
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .preview-popout-note[hidden] {
@@ -450,5 +564,5 @@ body {
   width: 100%;
   height: 100%;
   border: none;
-  background: #0f1115;
+  background: #fff;
 }
