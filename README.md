@@ -92,8 +92,12 @@ resulting apps are unsigned; see the warning above.
 - **Screens / pages** — the left sidebar lists your screens. Click one to open
   it. Type a name in **New page** and hit **+** to add one; hover a screen and
   click **×** to delete it (links to/from it are cleaned up).
-- **Editor tabs** — edit the screen's **HTML**, its **CSS**, or the shared
+- **Editor tabs** — edit the screen's **HTML**, **CSS**, **JS** (per-screen
+  JavaScript for interactivity, runs in the preview), or the shared
   **Global CSS** (colors, fonts, spacing used across all screens).
+- **Insert** — the **+ Insert** tab opens a menu of common elements (div,
+  paragraph, heading, button, input, list, …) that drop a snippet into the HTML
+  at your cursor.
 - **Saving** — edits **auto-save** to disk (that's how external tools see them
   live). Toggle **Auto-save: On/Off** in the top bar; with it off, use the
   **Save** button (it highlights when there are unsaved changes) or **⌘/Ctrl+S**.
@@ -154,6 +158,7 @@ projects/
       Login/
         Login.html
         Login.css
+        Login.js        # optional — per-screen interactivity
       Home/
         Home.html
         Home.css
