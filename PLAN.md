@@ -59,11 +59,21 @@ desktop app for macOS and Windows. Both mount the same backend (`createProtoApi`
   rehoming (pets go to "a new home", never deleted) are DONE. Remaining: real
   pixel-pet sprites, then enable the "Pixel pet" hatch option (currently shown
   as "coming soon") and swap the emoji placeholders for sprite art.
-- [ ] **5 — Export & polish**:
-  - [ ] Standalone HTML that plays the prototype offline (`file://`, zero
-    build, zero network) — reuse the Play-mode script as a vanilla template.
-  - [ ] PNG per screen via a headless browser (on-demand, not a runtime dep).
-  - [ ] Zip/folder backup of the project.
+- [x] **Pages & saving** (added): add/delete screens from the sidebar; explicit
+  Save button + auto-save toggle (⌘/Ctrl+S), with a dirty indicator.
+- [~] **5 — Export & polish**:
+  - [x] Standalone HTML that plays the prototype offline (zero build, zero
+    network; same-origin iframes so no postMessage bridge needed).
+  - [x] Code export: a store-only `.zip` of the selected screens' source +
+    `links.json` (dependency-free zip writer).
+  - [x] PDF via the browser's print / Save-as-PDF (one page each).
+  - [x] Per-page selection (export one or many).
+  - [ ] PNG per screen — needs a headless browser (Puppeteer, on-demand).
+  - [ ] Mockup frames (light/dark desktop, phone, …) compositing a screenshot
+    into a device frame — headless render + frame assets.
+  - [ ] GIF / MP4 walkthrough — headless frame capture + encoder (gif.js /
+    ffmpeg). MP4 needs ffmpeg.
+  - [ ] Transitions in the standalone player (currently instant).
 
 ## Project folder layout
 

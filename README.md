@@ -89,10 +89,14 @@ resulting apps are unsigned; see the warning above.
 - **Projects** — the sidebar shows the current project at the top; click it to
   open the Projects manager, where you can switch between projects, create a new
   one, or delete one. Each project is its own folder of screens.
-- **Screens** — the left sidebar lists your screens. Click one to open it.
+- **Screens / pages** — the left sidebar lists your screens. Click one to open
+  it. Type a name in **New page** and hit **+** to add one; hover a screen and
+  click **×** to delete it (links to/from it are cleaned up).
 - **Editor tabs** — edit the screen's **HTML**, its **CSS**, or the shared
-  **Global CSS** (colors, fonts, spacing used across all screens). Changes save
-  automatically and the preview reloads.
+  **Global CSS** (colors, fonts, spacing used across all screens).
+- **Saving** — edits **auto-save** to disk (that's how external tools see them
+  live). Toggle **Auto-save: On/Off** in the top bar; with it off, use the
+  **Save** button (it highlights when there are unsaved changes) or **⌘/Ctrl+S**.
 - **Device sizes** — the top bar switches the preview between **Full**, phone,
   tablet, and desktop widths.
 - **Zoom & pan** — use the **−/+** buttons (top-left of the preview) or
@@ -123,6 +127,11 @@ resulting apps are unsigned; see the warning above.
   color stops as you like, choose **linear / radial / conic** (and
   **repeating**), and set the angle. Copy any value (HEX, `rgb(...)`, or the
   full `*-gradient(...)`) to the clipboard to paste into your CSS.
+- **Export** — the **Export** button opens a modal. Pick which pages to
+  include, then export: a self-contained **Prototype** (`.html`, plays offline
+  by just opening it), the **Code** (`.zip` of HTML/CSS + `links.json`), or
+  **PDF** (via your browser's Save-as-PDF, one page each). Image / mockup-frame
+  / GIF / MP4 exports are coming (they need a headless-render pipeline).
 - **Pixel pet** — hatch a companion at the bottom of the sidebar; it bobs
   around, reacts when you pet it, and drops quips, app tips, and context-aware
   nudges. You can keep **up to two** pets (they stack), and you can **rehome** a
