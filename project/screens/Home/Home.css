@@ -1,0 +1,23 @@
+.home {
+  padding: var(--space-4);
+}
+
+.home-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.home-header h1 {
+  font-size: 1.3rem;
+  margin: 0;
+}
+
+.home-header button {
+  padding: var(--space-1) var(--space-2);
+  border-radius: 8px;
+  border: 1px solid #2a2e37;
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+}

@@ -1,0 +1,12 @@
+{
+  "screens": [
+    "Login",
+    "Home"
+  ],
+  "startScreen": "Login",
+  "deviceSizes": {
+    "phone": 390,
+    "tablet": 768,
+    "desktop": 1280
+  }
+}
