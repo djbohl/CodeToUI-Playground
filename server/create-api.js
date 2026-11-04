@@ -47,7 +47,21 @@ export function createProtoApi({ projectsRoot, wsPort, initialProject }) {
   let activeName = initialProject;
   let activeDir = path.join(projectsRoot, activeName);
 
-  const wss = new WebSocketServer({ port: wsPort });
+  // Bind resiliently: when Vite restarts the dev server (e.g. after a server
+  // file changes), the previous WebSocketServer may still hold the port for a
+  // moment. Retry instead of crashing the process on EADDRINUSE.
+  let wss;
+  function bindWss(attempt = 0) {
+    wss = new WebSocketServer({ port: wsPort });
+    wss.on("error", (err) => {
+      if (err.code === "EADDRINUSE" && attempt < 20) {
+        setTimeout(() => bindWss(attempt + 1), 300);
+      } else {
+        console.error("[proto] WebSocket server error:", err.message);
+      }
+    });
+  }
+  bindWss();
 
   function broadcast(message) {
     const data = JSON.stringify(message);
