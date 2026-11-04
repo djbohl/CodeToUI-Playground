@@ -4,6 +4,7 @@ import { css } from "@codemirror/lang-css";
 import { FileSync } from "./editor-sync.js";
 import { initPet } from "./pet.js";
 import { initColorPicker } from "./color-picker.js";
+import { buildStandaloneHtml, buildZip, openPrintWindow, downloadBlob } from "./export.js";
 
 const statusEl = document.getElementById("sync-status");
 const bannerEl = document.getElementById("conflict-banner");
@@ -43,6 +44,21 @@ const playBackEl = document.getElementById("play-back");
 const playFlashEl = document.getElementById("play-flash");
 const playExitEl = document.getElementById("play-exit");
 const themeToggleEl = document.getElementById("theme-toggle");
+const saveBtnEl = document.getElementById("save-btn");
+const autosaveToggleEl = document.getElementById("autosave-toggle");
+const newScreenNameEl = document.getElementById("new-screen-name");
+const screenCreateEl = document.getElementById("screen-create");
+const screenAddErrorEl = document.getElementById("screen-add-error");
+const exportToggleEl = document.getElementById("export-toggle");
+const exportModalEl = document.getElementById("export-modal");
+const exportCloseEl = document.getElementById("export-close");
+const exportPagesEl = document.getElementById("export-pages");
+const exportPagesAllEl = document.getElementById("export-pages-all");
+const exportPagesNoneEl = document.getElementById("export-pages-none");
+const exportPrototypeEl = document.getElementById("export-prototype");
+const exportCodeEl = document.getElementById("export-code");
+const exportPdfEl = document.getElementById("export-pdf");
+const exportStatusEl = document.getElementById("export-status");
 const projectsToggleEl = document.getElementById("projects-toggle");
 const currentProjectEl = document.getElementById("current-project");
 const projectsModalEl = document.getElementById("projects-modal");
@@ -60,6 +76,53 @@ let linkMode = false;
 let selectedProtoId = null;
 let everPlayed = false;
 let petCtl = null; // pixel-pet controller (set in main)
+let autoSave = localStorage.getItem("codetoui-autosave") !== "off";
+
+// --- Save / auto-save -------------------------------------------------------
+function anyDirty() {
+  return ["html", "css", "globalCss"].some((k) => syncs[k]?.dirty);
+}
+
+function updateSaveIndicator() {
+  saveBtnEl.classList.toggle("dirty", anyDirty());
+}
+
+async function saveAll() {
+  for (const k of ["html", "css", "globalCss"]) {
+    if (syncs[k]) await syncs[k].flush();
+  }
+  updateSaveIndicator();
+}
+
+function applyAutosaveLabel() {
+  autosaveToggleEl.textContent = `Auto-save: ${autoSave ? "On" : "Off"}`;
+  autosaveToggleEl.classList.toggle("active", autoSave);
+}
+
+function makeSync(view, saveFn, key, label) {
+  return new FileSync({
+    view,
+    saveFn,
+    onConflict: () => showConflictBanner(key, label),
+    onDirtyChange: updateSaveIndicator,
+    shouldAutoSave: () => autoSave,
+  });
+}
+
+saveBtnEl.addEventListener("click", saveAll);
+autosaveToggleEl.addEventListener("click", () => {
+  autoSave = !autoSave;
+  localStorage.setItem("codetoui-autosave", autoSave ? "on" : "off");
+  applyAutosaveLabel();
+  if (autoSave) saveAll(); // flush anything pending when turning it back on
+});
+window.addEventListener("keydown", (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
+    e.preventDefault();
+    saveAll();
+  }
+});
+applyAutosaveLabel();
 
 // --- Theme (light/dark) -----------------------------------------------------
 const THEME_KEY = "codetoui-theme";
@@ -884,17 +947,179 @@ function renderSidebar(screens) {
   screenListEl.innerHTML = "";
   for (const s of screens) {
     const li = document.createElement("li");
-    li.textContent = s.name + (s.missing ? " (missing)" : "");
     li.classList.toggle("active", s.name === currentScreen);
     li.classList.toggle("missing", s.missing);
-    li.onclick = () => {
-      if (s.missing) return;
-      if (s.name === currentScreen) return;
-      loadScreen(s.name).then(() => renderSidebar(screens));
+
+    const nm = document.createElement("span");
+    nm.className = "screen-name-label";
+    nm.textContent = s.name + (s.missing ? " (missing)" : "");
+    nm.onclick = () => {
+      if (s.missing || s.name === currentScreen) return;
+      loadScreen(s.name).then(() => renderSidebar(currentScreens));
     };
+    li.appendChild(nm);
+
+    if (screens.length > 1 && !s.missing) {
+      const del = document.createElement("button");
+      del.className = "screen-del";
+      del.textContent = "×";
+      del.title = "Delete page";
+      del.onclick = (e) => {
+        e.stopPropagation();
+        deleteScreenAction(s.name);
+      };
+      li.appendChild(del);
+    }
     screenListEl.appendChild(li);
   }
 }
+
+// --- Add / delete pages -----------------------------------------------------
+async function createScreenAction() {
+  const name = newScreenNameEl.value.trim();
+  if (!name) return;
+  const res = await fetch("/api/screens", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+  if (!res.ok) {
+    screenAddErrorEl.textContent = await res.text();
+    screenAddErrorEl.hidden = false;
+    return;
+  }
+  const { screens } = await res.json();
+  newScreenNameEl.value = "";
+  screenAddErrorEl.hidden = true;
+  currentScreens = screens;
+  await loadScreen(name);
+  renderSidebar(screens);
+  petCtl?.react("screenAdded");
+}
+
+async function deleteScreenAction(name) {
+  if (!confirm(`Delete page "${name}"? This removes its files and any links to/from it.`)) return;
+  const res = await fetch(`/api/screens/${encodeURIComponent(name)}`, { method: "DELETE" });
+  if (!res.ok) {
+    alert(await res.text());
+    return;
+  }
+  const { config, screens } = await res.json();
+  startScreenName = config.startScreen;
+  currentScreens = screens;
+  linksData = await fetchJson("/api/links"); // server pruned affected links
+  if (currentScreen === name) {
+    await loadScreen(config.startScreen);
+  }
+  renderSidebar(screens);
+}
+
+screenCreateEl.addEventListener("click", createScreenAction);
+newScreenNameEl.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") createScreenAction();
+});
+
+// --- Export -----------------------------------------------------------------
+function projectSlug() {
+  return (currentProjectEl.textContent || "project").trim().replace(/[^A-Za-z0-9_-]+/g, "-") || "project";
+}
+
+function selectedPages() {
+  return [...exportPagesEl.querySelectorAll("input:checked")].map((c) => c.value);
+}
+
+function exportStatus(msg) {
+  exportStatusEl.textContent = msg;
+  exportStatusEl.hidden = false;
+}
+
+async function fetchScreensContent(names) {
+  const out = [];
+  for (const name of names) {
+    const { html: h, css: c } = await fetchJson(`/api/screen/${encodeURIComponent(name)}`);
+    out.push({ name, html: h, css: c });
+  }
+  return out;
+}
+
+function renderExportPages() {
+  exportPagesEl.innerHTML = "";
+  for (const s of currentScreens) {
+    if (s.missing) continue;
+    const lab = document.createElement("label");
+    lab.className = "export-page";
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.value = s.name;
+    cb.checked = true;
+    lab.append(cb, document.createTextNode(s.name));
+    exportPagesEl.appendChild(lab);
+  }
+}
+
+function openExport() {
+  exportStatusEl.hidden = true;
+  renderExportPages();
+  exportModalEl.hidden = false;
+}
+
+exportToggleEl.addEventListener("click", openExport);
+exportCloseEl.addEventListener("click", () => (exportModalEl.hidden = true));
+exportModalEl.addEventListener("click", (e) => {
+  if (e.target === exportModalEl) exportModalEl.hidden = true;
+});
+exportPagesAllEl.addEventListener("click", () =>
+  exportPagesEl.querySelectorAll("input").forEach((c) => (c.checked = true))
+);
+exportPagesNoneEl.addEventListener("click", () =>
+  exportPagesEl.querySelectorAll("input").forEach((c) => (c.checked = false))
+);
+
+exportPrototypeEl.addEventListener("click", async () => {
+  const names = selectedPages();
+  if (!names.length) return exportStatus("Pick at least one page.");
+  await saveAll();
+  const screens = await fetchScreensContent(names);
+  const start = names.includes(startScreenName) ? startScreenName : names[0];
+  const html = buildStandaloneHtml({
+    screens,
+    globalCss: globalCssView.state.doc.toString(),
+    links: linksData.links.filter((l) => names.includes(l.screen)),
+    startScreen: start,
+    title: currentProjectEl.textContent,
+  });
+  downloadBlob(new Blob([html], { type: "text/html" }), `${projectSlug()}-prototype.html`);
+  exportStatus("Prototype exported ✓");
+});
+
+exportCodeEl.addEventListener("click", async () => {
+  const names = selectedPages();
+  if (!names.length) return exportStatus("Pick at least one page.");
+  await saveAll();
+  const screens = await fetchScreensContent(names);
+  const files = [{ path: "global.css", content: globalCssView.state.doc.toString() }];
+  for (const s of screens) {
+    files.push({ path: `screens/${s.name}/${s.name}.html`, content: s.html });
+    files.push({ path: `screens/${s.name}/${s.name}.css`, content: s.css });
+  }
+  files.push({ path: "links.json", content: JSON.stringify(linksData, null, 2) });
+  const zip = buildZip(files);
+  downloadBlob(new Blob([zip], { type: "application/zip" }), `${projectSlug()}-code.zip`);
+  exportStatus("Code exported ✓");
+});
+
+exportPdfEl.addEventListener("click", async () => {
+  const names = selectedPages();
+  if (!names.length) return exportStatus("Pick at least one page.");
+  await saveAll();
+  const screens = await fetchScreensContent(names);
+  const ok = openPrintWindow({
+    screens,
+    globalCss: globalCssView.state.doc.toString(),
+    title: currentProjectEl.textContent,
+  });
+  exportStatus(ok ? "Opened print view — choose 'Save as PDF'." : "Popup blocked — allow popups and retry.");
+});
 
 const OVERVIEW_REFERENCE_WIDTH = 1280;
 const OVERVIEW_THUMB_WIDTH = 280;
@@ -970,16 +1195,8 @@ async function loadScreen(name) {
     scheduleRender();
   });
 
-  syncs.html = new FileSync({
-    view: htmlView,
-    saveFn: (content) => saveScreenFile("html", content),
-    onConflict: () => showConflictBanner("html", "HTML"),
-  });
-  syncs.css = new FileSync({
-    view: cssView,
-    saveFn: (content) => saveScreenFile("css", content),
-    onConflict: () => showConflictBanner("css", "CSS"),
-  });
+  syncs.html = makeSync(htmlView, (content) => saveScreenFile("html", content), "html", "HTML");
+  syncs.css = makeSync(cssView, (content) => saveScreenFile("css", content), "css", "CSS");
 
   if (linkMode) resetLinkSelection();
   renderPreview();
@@ -1147,11 +1364,7 @@ async function main() {
       scheduleRender();
     }
   );
-  syncs.globalCss = new FileSync({
-    view: globalCssView,
-    saveFn: (content) => saveGlobalCss(content),
-    onConflict: () => showConflictBanner("globalCss", "Global CSS"),
-  });
+  syncs.globalCss = makeSync(globalCssView, (content) => saveGlobalCss(content), "globalCss", "Global CSS");
 
   const startScreen = config.startScreen || screens[0]?.name;
   startScreenName = startScreen;

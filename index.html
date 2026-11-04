@@ -14,17 +14,25 @@
       </button>
       <div class="sidebar-title">Screens</div>
       <ul id="screen-list"></ul>
+      <div class="screen-add">
+        <input id="new-screen-name" placeholder="New page" autocomplete="off" />
+        <button class="topbar-btn" id="screen-create" title="Add page">+</button>
+      </div>
+      <div class="screen-add-error" id="screen-add-error" hidden></div>
       <div class="pet-dock" id="pet-dock"></div>
     </aside>
     <div class="main">
       <header class="topbar">
         <div class="screen-name" id="screen-name">Login</div>
         <div class="device-switcher" id="device-switcher"></div>
+        <button class="topbar-btn" id="save-btn">Save</button>
+        <button class="topbar-btn" id="autosave-toggle">Auto-save: On</button>
         <button class="topbar-btn" id="editor-toggle">Hide code</button>
         <button class="topbar-btn" id="popout-toggle">Pop out</button>
         <button class="topbar-btn" id="link-toggle">Link</button>
         <button class="topbar-btn" id="play-toggle">Play</button>
         <button class="topbar-btn" id="overview-toggle">Overview</button>
+        <button class="topbar-btn" id="export-toggle">Export</button>
         <button class="topbar-btn" id="color-toggle">Colors</button>
         <button class="topbar-btn" id="theme-toggle" title="Toggle light/dark">☾ Dark</button>
         <div class="status" id="sync-status">connecting…</div>
@@ -104,6 +112,53 @@
         <button class="topbar-btn" id="project-create">Create</button>
       </div>
       <div class="projects-error" id="projects-error" hidden></div>
+    </div>
+  </div>
+  <div class="modal" id="export-modal" hidden>
+    <div class="modal-dialog export-dialog">
+      <div class="modal-head">
+        <span>Export</span>
+        <button class="topbar-btn" id="export-close">Close</button>
+      </div>
+
+      <div class="export-section">
+        <div class="export-label">Pages</div>
+        <div class="export-pages" id="export-pages"></div>
+        <div class="export-pages-actions">
+          <button class="topbar-btn" id="export-pages-all">All</button>
+          <button class="topbar-btn" id="export-pages-none">None</button>
+        </div>
+      </div>
+
+      <div class="export-section">
+        <div class="export-label">Available now</div>
+        <div class="export-grid">
+          <button class="export-btn" id="export-prototype">
+            <span class="export-btn-title">Prototype</span>
+            <span class="export-btn-sub">.html · self-contained, playable offline</span>
+          </button>
+          <button class="export-btn" id="export-code">
+            <span class="export-btn-title">Code</span>
+            <span class="export-btn-sub">.zip · HTML/CSS source files</span>
+          </button>
+          <button class="export-btn" id="export-pdf">
+            <span class="export-btn-title">PDF</span>
+            <span class="export-btn-sub">print · one page each</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="export-section">
+        <div class="export-label">Coming soon <span class="export-soon-note">(needs a render pipeline)</span></div>
+        <div class="export-grid">
+          <button class="export-btn" disabled><span class="export-btn-title">Images</span><span class="export-btn-sub">.png per screen</span></button>
+          <button class="export-btn" disabled><span class="export-btn-title">Mockups</span><span class="export-btn-sub">device frames (light/dark…)</span></button>
+          <button class="export-btn" disabled><span class="export-btn-title">GIF</span><span class="export-btn-sub">animated walkthrough</span></button>
+          <button class="export-btn" disabled><span class="export-btn-title">MP4</span><span class="export-btn-sub">video walkthrough</span></button>
+        </div>
+      </div>
+
+      <div class="export-status" id="export-status" hidden></div>
     </div>
   </div>
   <div class="modal" id="color-modal" hidden>

@@ -312,6 +312,85 @@ body {
   color: var(--danger);
 }
 
+#screen-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.screen-name-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.screen-del {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+  opacity: 0;
+}
+
+#screen-list li:hover .screen-del {
+  opacity: 1;
+}
+
+.screen-del:hover {
+  color: var(--danger);
+}
+
+.screen-add {
+  flex-shrink: 0;
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.screen-add input {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 2px solid var(--border);
+  padding: 5px 7px;
+}
+
+.screen-add input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.screen-add-error {
+  flex-shrink: 0;
+  color: var(--danger);
+  font-size: 10px;
+  margin-top: 5px;
+}
+
+.screen-add-error[hidden] {
+  display: none;
+}
+
+/* Save button reflects unsaved changes. */
+#save-btn.dirty {
+  color: var(--accent-ink);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+#save-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 /* ------------------------------------------------------------------ *
  * Top bar
  * ------------------------------------------------------------------ */
@@ -906,6 +985,112 @@ body {
  * ------------------------------------------------------------------ */
 .color-dialog {
   width: min(340px, 92vw);
+}
+
+/* ------------------------------------------------------------------ *
+ * Export modal
+ * ------------------------------------------------------------------ */
+.export-dialog {
+  width: min(460px, 92vw);
+}
+
+.export-section {
+  margin-bottom: 16px;
+}
+
+.export-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent-2);
+  margin-bottom: 8px;
+}
+
+.export-soon-note {
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+
+.export-pages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.export-page {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 2px solid var(--border);
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.export-page input {
+  accent-color: var(--accent);
+}
+
+.export-pages-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.export-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.export-btn {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
+  font-family: var(--font-ui);
+  color: var(--text);
+  background: var(--surface-2);
+  border: 2px solid var(--border);
+  box-shadow: 2px 2px 0 var(--shadow);
+  padding: 10px;
+  cursor: pointer;
+}
+
+.export-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.export-btn:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+.export-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.export-btn-title {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.export-btn-sub {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.export-status {
+  font-size: 11px;
+  color: var(--ok);
+}
+
+.export-status[hidden] {
+  display: none;
 }
 
 .color-mode {
