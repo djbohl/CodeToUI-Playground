@@ -119,12 +119,15 @@ resulting apps are unsigned; see the warning above.
   exits.
 - **Theme** — the **☾/☀** button toggles light/dark; your choice is remembered.
 - **Colors** — the **Colors** button opens a pixel-styled picker (saturation/value
-  square + hue bar), RGB and HEX fields, and a two-stop gradient builder. Copy
-  any value (HEX, `rgb(...)`, or a `linear-gradient(...)`) to the clipboard and
-  paste it into your CSS.
-- **Pixel pet** — hatch a little companion at the bottom of the sidebar; it
-  bobs around, reacts when you pet it, and drops quips and app tips. (The
-  creatures are emoji placeholders for now — easy to swap for real sprites.)
+  square + hue bar) with RGB/HEX fields and a gradient builder: add as many
+  color stops as you like, choose **linear / radial / conic** (and
+  **repeating**), and set the angle. Copy any value (HEX, `rgb(...)`, or the
+  full `*-gradient(...)`) to the clipboard to paste into your CSS.
+- **Pixel pet** — hatch a companion at the bottom of the sidebar; it bobs
+  around, reacts when you pet it, and drops quips, app tips, and context-aware
+  nudges. You can keep **up to two** pets (they stack), and you can **rehome** a
+  pet to make room — pets go to a new home, never deleted. (Creatures are emoji
+  placeholders for now; a "Pixel pet" hatch option is coming soon.)
 
 ## How projects are stored
 

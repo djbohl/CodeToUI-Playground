@@ -40,9 +40,11 @@ desktop app for macOS and Windows. Both mount the same backend (`createProtoApi`
 - [x] **Projects** (added): a projects root with multiple projects; list,
   create, switch (active project re-points the backend), and delete from the
   sidebar's Projects manager.
-- [x] **Fun extras** (added): a hatchable pixel pet companion (placeholder
-  emoji sprites, quips + tips) docked in the sidebar, and a pixel-themed color
-  tool (SV/hue picker, RGB/HEX, two-stop gradient) with clipboard copy.
+- [x] **Fun extras** (added): a hatchable pixel pet companion docked in the
+  sidebar — up to 2 pets that stack upward, context-aware tips + quips, and
+  rehoming (never deletion); plus a pixel-themed color tool (SV/hue picker,
+  RGB/HEX, multi-stop linear/radial/conic gradients incl. repeating) with
+  clipboard copy. Pet sprites are emoji placeholders for now.
 - [x] **4 — Link mode + Play mode**:
   - [x] `links.json` API (read/write); schema `{id, screen, elementId, target,
     mode, transition}` where `target` may be a screen or `$back` / `$home`.
@@ -53,10 +55,10 @@ desktop app for macOS and Windows. Both mount the same backend (`createProtoApi`
     (modal) layers, Back/Home targets, Esc to exit, flash-hotspots toggle, and
     instant/dissolve/slide-{left,right,up,down} transitions.
   - [ ] Support `data-goto="ScreenName"` in raw HTML as a code-first equivalent.
-- [ ] **Pet roadmap** (once real pixel-pet sprites exist): choose to hatch a
-  plain egg or a specific pixel pet; keep up to 2 pets; allow re-hatching a
-  pet. Re-hatching is framed as **rehoming, not deletion** — show the pet
-  "going to a new home" (pets are rehomed, not discarded).
+- [~] **Pet roadmap**: up to 2 stacked pets, egg/pixel-pet hatch choice, and
+  rehoming (pets go to "a new home", never deleted) are DONE. Remaining: real
+  pixel-pet sprites, then enable the "Pixel pet" hatch option (currently shown
+  as "coming soon") and swap the emoji placeholders for sprite art.
 - [ ] **5 — Export & polish**:
   - [ ] Standalone HTML that plays the prototype offline (`file://`, zero
     build, zero network) — reuse the Play-mode script as a vanilla template.
