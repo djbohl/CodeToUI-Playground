@@ -1097,6 +1097,30 @@ body {
   gap: 8px;
 }
 
+.export-mockup-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.export-mockup-row select {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 2px solid var(--border);
+  padding: 4px 6px;
+}
+
+.export-soon-note code {
+  font-size: 10px;
+}
+
 .export-btn {
   display: flex;
   flex-direction: column;

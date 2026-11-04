@@ -25,6 +25,9 @@
     "serve-static": "^1.16.2",
     "ws": "^8.18.0"
   },
+  "optionalDependencies": {
+    "puppeteer": "^23.0.0"
+  },
   "devDependencies": {
     "@codemirror/lang-css": "^6.3.1",
     "@codemirror/lang-html": "^6.4.9",

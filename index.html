@@ -141,7 +141,7 @@
       </div>
 
       <div class="export-section">
-        <div class="export-label">Available now</div>
+        <div class="export-label">No extra tools</div>
         <div class="export-grid">
           <button class="export-btn" id="export-prototype">
             <span class="export-btn-title">Prototype</span>
@@ -149,22 +149,38 @@
           </button>
           <button class="export-btn" id="export-code">
             <span class="export-btn-title">Code</span>
-            <span class="export-btn-sub">.zip · HTML/CSS source files</span>
-          </button>
-          <button class="export-btn" id="export-pdf">
-            <span class="export-btn-title">PDF</span>
-            <span class="export-btn-sub">print · one page each</span>
+            <span class="export-btn-sub">.zip · HTML/CSS/JS source files</span>
           </button>
         </div>
       </div>
 
       <div class="export-section">
-        <div class="export-label">Coming soon <span class="export-soon-note">(needs a render pipeline)</span></div>
+        <div class="export-label">Rendered <span class="export-soon-note">(needs <code>npm i puppeteer</code>)</span></div>
+        <label class="export-mockup-row">Mockup frame
+          <select id="export-mockup">
+            <option value="none">None (plain)</option>
+            <option value="light-desktop">Light desktop</option>
+            <option value="dark-desktop">Dark desktop</option>
+            <option value="phone">Phone</option>
+          </select>
+        </label>
         <div class="export-grid">
-          <button class="export-btn" disabled><span class="export-btn-title">Images</span><span class="export-btn-sub">.png per screen</span></button>
-          <button class="export-btn" disabled><span class="export-btn-title">Mockups</span><span class="export-btn-sub">device frames (light/dark…)</span></button>
-          <button class="export-btn" disabled><span class="export-btn-title">GIF</span><span class="export-btn-sub">animated walkthrough</span></button>
-          <button class="export-btn" disabled><span class="export-btn-title">MP4</span><span class="export-btn-sub">video walkthrough</span></button>
+          <button class="export-btn" id="export-images">
+            <span class="export-btn-title">Images</span>
+            <span class="export-btn-sub">.png per screen (uses mockup frame)</span>
+          </button>
+          <button class="export-btn" id="export-pdf">
+            <span class="export-btn-title">PDF</span>
+            <span class="export-btn-sub">crisp, one screen per page</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="export-section">
+        <div class="export-label">Coming soon</div>
+        <div class="export-grid">
+          <button class="export-btn" disabled><span class="export-btn-title">GIF</span><span class="export-btn-sub">walkthrough · in-app, no extra tools</span></button>
+          <button class="export-btn" disabled><span class="export-btn-title">Video</span><span class="export-btn-sub">in the CodeToPrototype companion tool</span></button>
         </div>
       </div>
 

@@ -120,7 +120,7 @@ function crc32(bytes) {
   return (c ^ 0xffffffff) >>> 0;
 }
 
-/** files: [{ path, content(string) }] -> Uint8Array of a valid .zip */
+/** files: [{ path, content }] where content is a string or Uint8Array -> Uint8Array .zip */
 export function buildZip(files) {
   const enc = new TextEncoder();
   const chunks = [];
@@ -132,7 +132,7 @@ export function buildZip(files) {
 
   for (const f of files) {
     const nameBytes = enc.encode(f.path);
-    const data = enc.encode(f.content);
+    const data = typeof f.content === "string" ? enc.encode(f.content) : f.content;
     const crc = crc32(data);
 
     const local = [
