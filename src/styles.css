@@ -136,6 +136,13 @@ body {
   margin-bottom: 10px;
 }
 
+.sidebar-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .project-switch {
   width: 100%;
   display: flex;

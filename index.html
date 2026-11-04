@@ -8,14 +8,19 @@
 <body>
   <div id="app">
     <aside class="sidebar">
-      <div class="sidebar-title">Project</div>
+      <div class="sidebar-title sidebar-title-row">
+        <span>Project</span>
+        <span class="status" id="sync-status">connecting…</span>
+      </div>
       <button class="project-switch" id="projects-toggle">
         <span id="current-project">—</span><span class="project-switch-caret">▾</span>
       </button>
       <div class="sidebar-title">Screens</div>
       <ul id="screen-list"></ul>
       <div class="screen-add">
-        <input id="new-screen-name" placeholder="New page" autocomplete="off" />
+        <input id="new-screen-name" type="text" name="new-screen-name" placeholder="New page"
+          autocomplete="off" autocapitalize="off" spellcheck="false"
+          data-lpignore="true" data-1p-ignore="true" data-form-type="other" />
         <button class="topbar-btn" id="screen-create" title="Add page">+</button>
       </div>
       <div class="screen-add-error" id="screen-add-error" hidden></div>
@@ -35,7 +40,6 @@
         <button class="topbar-btn" id="export-toggle">Export</button>
         <button class="topbar-btn" id="color-toggle">Colors</button>
         <button class="topbar-btn" id="theme-toggle" title="Toggle light/dark">☾ Dark</button>
-        <div class="status" id="sync-status">connecting…</div>
       </header>
       <main class="layout" id="layout">
         <section class="editor-pane">
@@ -108,7 +112,9 @@
       </div>
       <ul class="projects-list" id="projects-list"></ul>
       <div class="projects-new">
-        <input id="project-new-name" placeholder="New project name" autocomplete="off" />
+        <input id="project-new-name" type="text" name="project-new-name" placeholder="New project name"
+          autocomplete="off" autocapitalize="off" spellcheck="false"
+          data-lpignore="true" data-1p-ignore="true" data-form-type="other" />
         <button class="topbar-btn" id="project-create">Create</button>
       </div>
       <div class="projects-error" id="projects-error" hidden></div>
