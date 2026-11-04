@@ -37,8 +37,9 @@ const STANDALONE_PLAYER = `
     return m;
   }
   function srcdoc(name){
-    var s=SCREENS[name]||{html:'',css:''};
-    return '<!doctype html><html><head><meta charset="utf-8"><style>'+GLOBAL+'</style><style>'+s.css+'</style></head><body>'+s.html+'</body></html>';
+    var s=SCREENS[name]||{html:'',css:'',js:''};
+    var jsTag = s.js ? '<scr'+'ipt>'+s.js+'</scr'+'ipt>' : '';
+    return '<!doctype html><html><head><meta charset="utf-8"><style>'+GLOBAL+'</style><style>'+s.css+'</style></head><body>'+s.html+jsTag+'</body></html>';
   }
   function wire(doc, name){
     var map=mapFor(name);
@@ -80,7 +81,7 @@ const STANDALONE_PLAYER = `
 
 export function buildStandaloneHtml({ screens, globalCss, links, startScreen, title = "Prototype" }) {
   const screenMap = {};
-  for (const s of screens) screenMap[s.name] = { html: s.html, css: s.css };
+  for (const s of screens) screenMap[s.name] = { html: s.html, css: s.css, js: s.js || "" };
   const data = { screens: screenMap, global: globalCss || "", links: links || [], start: startScreen };
   // Prevent any "</script>" inside embedded HTML/CSS from closing our script tag.
   const dataJson = JSON.stringify(data).replace(/<\//g, "<\\/");
@@ -213,7 +214,8 @@ export function openPrintWindow({ screens, globalCss, deviceWidth, title = "Prot
     const page = doc.createElement("div");
     page.className = "page";
     const f = doc.createElement("iframe");
-    f.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><style>${globalCss || ""}</style><style>${s.css || ""}</style></head><body>${s.html}</body></html>`;
+    const jsTag = s.js ? `<script>${String(s.js).replace(/<\/script/gi, "<\\/script")}<\/script>` : "";
+    f.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><style>${globalCss || ""}</style><style>${s.css || ""}</style></head><body>${s.html}${jsTag}</body></html>`;
     f.onload = () => {
       let h = 0;
       try {

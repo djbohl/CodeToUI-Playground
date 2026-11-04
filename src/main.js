@@ -1,6 +1,7 @@
 import { EditorView, basicSetup } from "codemirror";
 import { html } from "@codemirror/lang-html";
 import { css } from "@codemirror/lang-css";
+import { javascript } from "@codemirror/lang-javascript";
 import { FileSync } from "./editor-sync.js";
 import { initPet } from "./pet.js";
 import { initColorPicker } from "./color-picker.js";
@@ -59,6 +60,8 @@ const exportPrototypeEl = document.getElementById("export-prototype");
 const exportCodeEl = document.getElementById("export-code");
 const exportPdfEl = document.getElementById("export-pdf");
 const exportStatusEl = document.getElementById("export-status");
+const insertToggleEl = document.getElementById("insert-toggle");
+const insertMenuEl = document.getElementById("insert-menu");
 const projectsToggleEl = document.getElementById("projects-toggle");
 const currentProjectEl = document.getElementById("current-project");
 const projectsModalEl = document.getElementById("projects-modal");
@@ -80,7 +83,7 @@ let autoSave = localStorage.getItem("codetoui-autosave") !== "off";
 
 // --- Save / auto-save -------------------------------------------------------
 function anyDirty() {
-  return ["html", "css", "globalCss"].some((k) => syncs[k]?.dirty);
+  return ["html", "css", "js", "globalCss"].some((k) => syncs[k]?.dirty);
 }
 
 function updateSaveIndicator() {
@@ -88,7 +91,7 @@ function updateSaveIndicator() {
 }
 
 async function saveAll() {
-  for (const k of ["html", "css", "globalCss"]) {
+  for (const k of ["html", "css", "js", "globalCss"]) {
     if (syncs[k]) await syncs[k].flush();
   }
   updateSaveIndicator();
@@ -142,8 +145,9 @@ themeToggleEl.addEventListener("click", () => {
 applyTheme(localStorage.getItem(THEME_KEY) || "dark");
 let htmlView = null;
 let cssView = null;
+let jsView = null;
 let globalCssView = null;
-const syncs = {}; // 'html' | 'css' | 'globalCss' -> FileSync
+const syncs = {}; // 'html' | 'css' | 'js' | 'globalCss' -> FileSync
 
 async function fetchJson(url, opts) {
   const res = await fetch(url, opts);
@@ -197,14 +201,18 @@ const PREVIEW_BRIDGE_SCRIPT = `
 // `script` is the JS injected before </body>. Defaults to the live-preview
 // bridge; callers pass "" for a static render (overview/popout), or a custom
 // script for Link mode and Play mode.
-function composeSrcdoc(htmlContent, cssContent, globalCssContent, { script = PREVIEW_BRIDGE_SCRIPT } = {}) {
+// `js` is the screen's own interactivity script (runs before our bridge/mode
+// script). Any literal "</script>" is neutralised so it can't close the tag.
+function composeSrcdoc(htmlContent, cssContent, globalCssContent, { script = PREVIEW_BRIDGE_SCRIPT, js = "" } = {}) {
   const scriptTag = script ? `<script>${script}<\/script>` : "";
+  const userJsTag = js ? `<script>${js.replace(/<\/script/gi, "<\\/script")}<\/script>` : "";
   return `<!doctype html>
 <html><head><meta charset="utf-8" />
 <style>${globalCssContent}</style>
 <style>${cssContent}</style>
 </head><body>
 ${htmlContent}
+${userJsTag}
 ${scriptTag}
 </body></html>`;
 }
@@ -214,7 +222,10 @@ function renderPreview() {
   const htmlContent = htmlView.state.doc.toString();
   const cssContent = cssView.state.doc.toString();
   const globalCssContent = globalCssView.state.doc.toString();
-  const opts = linkMode ? { script: buildLinkModeScript() } : undefined;
+  const jsContent = jsView ? jsView.state.doc.toString() : "";
+  // In Link mode we don't run the screen's own JS: it could swallow clicks and
+  // fight the element-selection overlay.
+  const opts = linkMode ? { script: buildLinkModeScript() } : { js: jsContent };
   previewEl.srcdoc = composeSrcdoc(htmlContent, cssContent, globalCssContent, opts);
   // The new document will re-report its height via the bridge; until then fall
   // back to the pane height so the frame isn't left at a stale size.
@@ -266,17 +277,18 @@ function makeEditorView(container, lang, doc, onDocChanged) {
   });
 }
 
+function activateTab(target) {
+  document.querySelectorAll(".tab[data-tab]").forEach((t) => {
+    t.classList.toggle("active", t.dataset.tab === target);
+  });
+  document.querySelectorAll(".editor-container").forEach((c) => {
+    c.hidden = c.id !== `editor-${target}`;
+  });
+}
+
 function setupTabs() {
-  const tabs = document.querySelectorAll(".tab");
-  tabs.forEach((tab) => {
-    tab.addEventListener("click", () => {
-      tabs.forEach((t) => t.classList.remove("active"));
-      tab.classList.add("active");
-      const target = tab.dataset.tab;
-      document.getElementById("editor-html").hidden = target !== "html";
-      document.getElementById("editor-css").hidden = target !== "css";
-      document.getElementById("editor-globalCss").hidden = target !== "globalCss";
-    });
+  document.querySelectorAll(".tab[data-tab]").forEach((tab) => {
+    tab.addEventListener("click", () => activateTab(tab.dataset.tab));
   });
 }
 
@@ -773,10 +785,11 @@ function playModeScript(linkMap, flash) {
 }
 
 async function composePlayScreen(name) {
-  const { html: htmlContent, css: cssContent } = await fetchJson(`/api/screen/${name}`);
+  const { html: htmlContent, css: cssContent, js: jsContent } = await fetchJson(`/api/screen/${name}`);
   const globalCssContent = globalCssView.state.doc.toString();
   return composeSrcdoc(htmlContent, cssContent, globalCssContent, {
     script: playModeScript(screenLinkMap(name), playFlash),
+    js: jsContent,
   });
 }
 
@@ -1036,8 +1049,8 @@ function exportStatus(msg) {
 async function fetchScreensContent(names) {
   const out = [];
   for (const name of names) {
-    const { html: h, css: c } = await fetchJson(`/api/screen/${encodeURIComponent(name)}`);
-    out.push({ name, html: h, css: c });
+    const { html: h, css: c, js: j } = await fetchJson(`/api/screen/${encodeURIComponent(name)}`);
+    out.push({ name, html: h, css: c, js: j });
   }
   return out;
 }
@@ -1101,6 +1114,7 @@ exportCodeEl.addEventListener("click", async () => {
   for (const s of screens) {
     files.push({ path: `screens/${s.name}/${s.name}.html`, content: s.html });
     files.push({ path: `screens/${s.name}/${s.name}.css`, content: s.css });
+    if (s.js) files.push({ path: `screens/${s.name}/${s.name}.js`, content: s.js });
   }
   files.push({ path: "links.json", content: JSON.stringify(linksData, null, 2) });
   const zip = buildZip(files);
@@ -1122,6 +1136,66 @@ exportPdfEl.addEventListener("click", async () => {
   exportStatus(ok ? "Opened print view — choose 'Save as PDF'." : "Popup blocked — allow popups and retry.");
 });
 
+// --- Insert element menu ----------------------------------------------------
+const INSERT_SNIPPETS = [
+  ["Div", "<div>\n  \n</div>\n"],
+  ["Paragraph", "<p>Text</p>\n"],
+  ["Heading 1", "<h1>Heading</h1>\n"],
+  ["Heading 2", "<h2>Heading</h2>\n"],
+  ["Button", "<button>Button</button>\n"],
+  ["Link", '<a href="#">Link</a>\n'],
+  ["Image", '<img src="" alt="" />\n'],
+  ["Text input", '<input type="text" placeholder="" />\n'],
+  ["Textarea", "<textarea></textarea>\n"],
+  ["List", "<ul>\n  <li>Item</li>\n</ul>\n"],
+  ["Section", "<section>\n  \n</section>\n"],
+  ["Nav", "<nav>\n  \n</nav>\n"],
+  ["Span", "<span>text</span>"],
+  ["Card", '<div class="card">\n  \n</div>\n'],
+];
+
+function insertSnippet(text) {
+  activateTab("html"); // the Insert menu only edits HTML
+  if (!htmlView) return;
+  const sel = htmlView.state.selection.main;
+  htmlView.dispatch({
+    changes: { from: sel.from, to: sel.to, insert: text },
+    selection: { anchor: sel.from + text.length },
+  });
+  htmlView.focus(); // the editor's own change listener handles save + re-render
+}
+
+function buildInsertMenu() {
+  insertMenuEl.innerHTML = "";
+  for (const [label, snippet] of INSERT_SNIPPETS) {
+    const b = document.createElement("button");
+    b.textContent = label;
+    b.addEventListener("click", () => {
+      insertSnippet(snippet);
+      insertMenuEl.hidden = true;
+    });
+    insertMenuEl.appendChild(b);
+  }
+}
+
+insertToggleEl.addEventListener("click", (e) => {
+  e.stopPropagation();
+  if (insertMenuEl.hidden) {
+    if (!insertMenuEl.childElementCount) buildInsertMenu();
+    const r = insertToggleEl.getBoundingClientRect();
+    insertMenuEl.style.left = `${Math.min(r.left, window.innerWidth - 240)}px`;
+    insertMenuEl.style.top = `${r.bottom + 4}px`;
+    insertMenuEl.hidden = false;
+  } else {
+    insertMenuEl.hidden = true;
+  }
+});
+document.addEventListener("click", (e) => {
+  if (!insertMenuEl.hidden && !insertMenuEl.contains(e.target) && e.target !== insertToggleEl) {
+    insertMenuEl.hidden = true;
+  }
+});
+
 const OVERVIEW_REFERENCE_WIDTH = 1280;
 const OVERVIEW_THUMB_WIDTH = 280;
 const OVERVIEW_THUMB_HEIGHT = 200;
@@ -1133,7 +1207,7 @@ async function renderOverview() {
 
   for (const s of currentScreens) {
     if (s.missing) continue;
-    const { html: htmlContent, css: cssContent } = await fetchJson(`/api/screen/${s.name}`);
+    const { html: htmlContent, css: cssContent, js: jsContent } = await fetchJson(`/api/screen/${s.name}`);
 
     const card = document.createElement("div");
     card.className = "overview-card";
@@ -1151,7 +1225,7 @@ async function renderOverview() {
     iframe.style.height = `${OVERVIEW_THUMB_HEIGHT / OVERVIEW_SCALE}px`;
     iframe.style.transformOrigin = "top left";
     iframe.style.transform = `scale(${OVERVIEW_SCALE})`;
-    iframe.srcdoc = composeSrcdoc(htmlContent, cssContent, globalCssContent, { script: "" });
+    iframe.srcdoc = composeSrcdoc(htmlContent, cssContent, globalCssContent, { script: "", js: jsContent });
 
     box.appendChild(iframe);
     card.append(label, box);
@@ -1178,14 +1252,16 @@ overviewToggleEl.addEventListener("click", () => {
 async function loadScreen(name) {
   if (syncs.html) await syncs.html.flush();
   if (syncs.css) await syncs.css.flush();
+  if (syncs.js) await syncs.js.flush();
 
   currentScreen = name;
   screenNameEl.textContent = name;
 
-  const { html: htmlContent, css: cssContent } = await fetchJson(`/api/screen/${name}`);
+  const { html: htmlContent, css: cssContent, js: jsContent } = await fetchJson(`/api/screen/${name}`);
 
   if (htmlView) htmlView.destroy();
   if (cssView) cssView.destroy();
+  if (jsView) jsView.destroy();
 
   htmlView = makeEditorView(document.getElementById("editor-html"), html, htmlContent, () => {
     syncs.html.markDirtyAndScheduleSave();
@@ -1195,9 +1271,14 @@ async function loadScreen(name) {
     syncs.css.markDirtyAndScheduleSave();
     scheduleRender();
   });
+  jsView = makeEditorView(document.getElementById("editor-js"), javascript, jsContent || "", () => {
+    syncs.js.markDirtyAndScheduleSave();
+    scheduleRender();
+  });
 
   syncs.html = makeSync(htmlView, (content) => saveScreenFile("html", content), "html", "HTML");
   syncs.css = makeSync(cssView, (content) => saveScreenFile("css", content), "css", "CSS");
+  syncs.js = makeSync(jsView, (content) => saveScreenFile("js", content), "js", "JS");
 
   if (linkMode) resetLinkSelection();
   renderPreview();

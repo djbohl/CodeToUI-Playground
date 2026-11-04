@@ -28,6 +28,7 @@
   "devDependencies": {
     "@codemirror/lang-css": "^6.3.1",
     "@codemirror/lang-html": "^6.4.9",
+    "@codemirror/lang-javascript": "^6.2.2",
     "codemirror": "^6.0.1",
     "electron": "^31.7.7",
     "electron-builder": "^24.13.3",
