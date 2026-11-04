@@ -8,6 +8,10 @@
 <body>
   <div id="app">
     <aside class="sidebar">
+      <div class="sidebar-title">Project</div>
+      <button class="project-switch" id="projects-toggle">
+        <span id="current-project">—</span><span class="project-switch-caret">▾</span>
+      </button>
       <div class="sidebar-title">Screens</div>
       <ul id="screen-list"></ul>
     </aside>
@@ -75,6 +79,20 @@
         </section>
       </main>
       <section class="overview-board" id="overview-board" hidden></section>
+    </div>
+  </div>
+  <div class="modal" id="projects-modal" hidden>
+    <div class="modal-dialog">
+      <div class="modal-head">
+        <span>Projects</span>
+        <button class="topbar-btn" id="projects-close">Close</button>
+      </div>
+      <ul class="projects-list" id="projects-list"></ul>
+      <div class="projects-new">
+        <input id="project-new-name" placeholder="New project name" autocomplete="off" />
+        <button class="topbar-btn" id="project-create">Create</button>
+      </div>
+      <div class="projects-error" id="projects-error" hidden></div>
     </div>
   </div>
   <div class="play-mode" id="play-mode" hidden>

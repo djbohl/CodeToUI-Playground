@@ -38,6 +38,14 @@ const playScreenNameEl = document.getElementById("play-screen-name");
 const playBackEl = document.getElementById("play-back");
 const playExitEl = document.getElementById("play-exit");
 const themeToggleEl = document.getElementById("theme-toggle");
+const projectsToggleEl = document.getElementById("projects-toggle");
+const currentProjectEl = document.getElementById("current-project");
+const projectsModalEl = document.getElementById("projects-modal");
+const projectsCloseEl = document.getElementById("projects-close");
+const projectsListEl = document.getElementById("projects-list");
+const projectNewNameEl = document.getElementById("project-new-name");
+const projectCreateEl = document.getElementById("project-create");
+const projectsErrorEl = document.getElementById("projects-error");
 
 let deviceSizes = {};
 let currentScreen = null;
@@ -851,10 +859,117 @@ function connectWebSocket(wsPort) {
   };
 }
 
+// --- Project management -----------------------------------------------------
+// Switching the active project re-points the whole backend, so the simplest
+// correct way to adopt the new project is a full reload rather than surgically
+// swapping every bit of in-memory state.
+
+function showProjectsError(msg) {
+  projectsErrorEl.textContent = msg;
+  projectsErrorEl.hidden = false;
+}
+
+async function refreshProjectsList() {
+  const data = await fetchJson("/api/projects");
+  currentProjectEl.textContent = data.active || "—";
+  projectsListEl.innerHTML = "";
+  for (const name of data.projects) {
+    const li = document.createElement("li");
+    const isActive = name === data.active;
+    if (isActive) li.classList.add("active");
+
+    const nm = document.createElement("span");
+    nm.className = "proj-name";
+    nm.textContent = name;
+    li.appendChild(nm);
+
+    if (isActive) {
+      const badge = document.createElement("span");
+      badge.className = "proj-badge";
+      badge.textContent = "Active";
+      li.appendChild(badge);
+    } else {
+      const openBtn = document.createElement("button");
+      openBtn.className = "topbar-btn";
+      openBtn.textContent = "Open";
+      openBtn.onclick = () => switchProject(name);
+      li.appendChild(openBtn);
+
+      if (data.projects.length > 1) {
+        const delBtn = document.createElement("button");
+        delBtn.className = "topbar-btn";
+        delBtn.textContent = "Delete";
+        delBtn.onclick = () => deleteProjectConfirm(name);
+        li.appendChild(delBtn);
+      }
+    }
+    projectsListEl.appendChild(li);
+  }
+}
+
+async function openProjects() {
+  projectsErrorEl.hidden = true;
+  await refreshProjectsList();
+  projectsModalEl.hidden = false;
+  projectNewNameEl.focus();
+}
+
+function closeProjects() {
+  projectsModalEl.hidden = true;
+}
+
+async function switchProject(name) {
+  await fetchJson("/api/projects/active", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+  location.reload();
+}
+
+async function createProject() {
+  const name = projectNewNameEl.value.trim();
+  if (!name) return;
+  const res = await fetch("/api/projects", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+  if (!res.ok) {
+    showProjectsError(await res.text());
+    return;
+  }
+  projectNewNameEl.value = "";
+  projectsErrorEl.hidden = true;
+  await refreshProjectsList();
+}
+
+async function deleteProjectConfirm(name) {
+  if (!confirm(`Delete project "${name}"? This permanently removes its files.`)) return;
+  const res = await fetch(`/api/projects/${encodeURIComponent(name)}`, { method: "DELETE" });
+  if (!res.ok) {
+    showProjectsError(await res.text());
+    return;
+  }
+  await refreshProjectsList();
+}
+
+projectsToggleEl.addEventListener("click", openProjects);
+projectsCloseEl.addEventListener("click", closeProjects);
+projectCreateEl.addEventListener("click", createProject);
+projectNewNameEl.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") createProject();
+});
+projectsModalEl.addEventListener("click", (e) => {
+  if (e.target === projectsModalEl) closeProjects();
+});
+
 async function main() {
   setupTabs();
 
-  const { config, screens, globalCss: globalCssContent, wsPort } = await fetchJson("/api/project");
+  const { config, screens, globalCss: globalCssContent, wsPort, activeProject } =
+    await fetchJson("/api/project");
+  currentProjectEl.textContent = activeProject || "—";
   deviceSizes = config.deviceSizes || {};
   renderDeviceSwitcher();
 
