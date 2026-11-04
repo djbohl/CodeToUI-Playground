@@ -23,10 +23,27 @@ const panOverlayEl = document.getElementById("preview-pan-overlay");
 const panToggleEl = document.getElementById("pan-toggle");
 const zoomInEl = document.getElementById("zoom-in");
 const zoomOutEl = document.getElementById("zoom-out");
+const linkToggleEl = document.getElementById("link-toggle");
+const linkPanelEl = document.getElementById("link-panel");
+const linkPanelLabelEl = document.getElementById("link-panel-label");
+const linkPanelControlsEl = document.getElementById("link-panel-controls");
+const linkTargetEl = document.getElementById("link-target");
+const linkTransitionEl = document.getElementById("link-transition");
+const linkSaveEl = document.getElementById("link-save");
+const linkRemoveEl = document.getElementById("link-remove");
+const playToggleEl = document.getElementById("play-toggle");
+const playModeEl = document.getElementById("play-mode");
+const playFrameEl = document.getElementById("play-frame");
+const playScreenNameEl = document.getElementById("play-screen-name");
+const playBackEl = document.getElementById("play-back");
+const playExitEl = document.getElementById("play-exit");
 
 let deviceSizes = {};
 let currentScreen = null;
 let currentScreens = [];
+let linksData = { version: 1, links: [] };
+let linkMode = false;
+let selectedProtoId = null;
 let htmlView = null;
 let cssView = null;
 let globalCssView = null;
@@ -81,15 +98,18 @@ const PREVIEW_BRIDGE_SCRIPT = `
 })();
 `;
 
-function composeSrcdoc(htmlContent, cssContent, globalCssContent, { bridge = true } = {}) {
-  const bridgeTag = bridge ? `<script>${PREVIEW_BRIDGE_SCRIPT}<\/script>` : "";
+// `script` is the JS injected before </body>. Defaults to the live-preview
+// bridge; callers pass "" for a static render (overview/popout), or a custom
+// script for Link mode and Play mode.
+function composeSrcdoc(htmlContent, cssContent, globalCssContent, { script = PREVIEW_BRIDGE_SCRIPT } = {}) {
+  const scriptTag = script ? `<script>${script}<\/script>` : "";
   return `<!doctype html>
 <html><head><meta charset="utf-8" />
 <style>${globalCssContent}</style>
 <style>${cssContent}</style>
 </head><body>
 ${htmlContent}
-${bridgeTag}
+${scriptTag}
 </body></html>`;
 }
 
@@ -98,7 +118,8 @@ function renderPreview() {
   const htmlContent = htmlView.state.doc.toString();
   const cssContent = cssView.state.doc.toString();
   const globalCssContent = globalCssView.state.doc.toString();
-  previewEl.srcdoc = composeSrcdoc(htmlContent, cssContent, globalCssContent);
+  const opts = linkMode ? { script: buildLinkModeScript() } : undefined;
+  previewEl.srcdoc = composeSrcdoc(htmlContent, cssContent, globalCssContent, opts);
   // The new document will re-report its height via the bridge; until then fall
   // back to the pane height so the frame isn't left at a stale size.
   previewContentHeight = 0;
@@ -236,6 +257,10 @@ window.addEventListener("message", (e) => {
   // anyway so a stray sender can never resize or pan the live preview).
   if (e.source !== previewEl.contentWindow) return;
 
+  if (e.data.type === "select") {
+    onLinkSelect(e.data.protoId, e.data.label);
+    return;
+  }
   if (e.data.type === "size") {
     if (typeof e.data.height === "number" && e.data.height > 0) {
       previewContentHeight = e.data.height;
@@ -281,7 +306,7 @@ const POPOUT_FRAME_ID = "proto-popout-frame";
 function updatePopoutContent(htmlContent, cssContent, globalCssContent) {
   if (!previewWindow || previewWindow.closed) return;
   const frame = previewWindow.document.getElementById(POPOUT_FRAME_ID);
-  if (frame) frame.srcdoc = composeSrcdoc(htmlContent, cssContent, globalCssContent, { bridge: false });
+  if (frame) frame.srcdoc = composeSrcdoc(htmlContent, cssContent, globalCssContent, { script: "" });
   previewWindow.document.title = `${currentScreen} — Preview`;
 }
 
@@ -398,6 +423,262 @@ function endPan(e) {
 panOverlayEl.addEventListener("pointerup", endPan);
 panOverlayEl.addEventListener("pointercancel", endPan);
 
+// --- Link mode (authoring) --------------------------------------------------
+// Injected into the preview iframe while linking: it outlines already-linked
+// elements, highlights on hover, and reports the clicked element's stable id
+// to the parent. All selection/target UI lives in the parent frame. Styling
+// and highlighting stay INSIDE the iframe so they're immune to the preview's
+// transform scaling.
+
+function linkModeScript(linkedIds) {
+  return `(function(){
+  var LINKED = ${JSON.stringify(linkedIds)};
+  var style = document.createElement('style');
+  style.textContent = '[data-proto-id]{cursor:pointer}'
+    + '[data-proto-linked]{outline:2px solid #5bd98a !important;outline-offset:1px}'
+    + '[data-proto-hover]{outline:2px solid #5b8cff !important;outline-offset:1px}';
+  document.head.appendChild(style);
+  LINKED.forEach(function(id){
+    var el = document.querySelector('[data-proto-id="'+id+'"]');
+    if (el) el.setAttribute('data-proto-linked','');
+  });
+  var hovered = null;
+  document.addEventListener('mouseover', function(e){
+    var el = e.target.closest ? e.target.closest('[data-proto-id]') : null;
+    if (hovered && hovered !== el) hovered.removeAttribute('data-proto-hover');
+    hovered = el;
+    if (hovered) hovered.setAttribute('data-proto-hover','');
+  });
+  document.addEventListener('click', function(e){
+    var el = e.target.closest ? e.target.closest('[data-proto-id]') : null;
+    e.preventDefault();
+    e.stopPropagation();
+    if (!el) return;
+    var id = el.getAttribute('data-proto-id');
+    var text = (el.textContent || '').trim().replace(/\\s+/g, ' ').slice(0, 30);
+    var label = el.tagName.toLowerCase() + (text ? ' · ' + text : '');
+    window.parent.postMessage({ source: 'proto-preview', type: 'select', protoId: id, label: label }, '*');
+  }, true);
+  function postSize(){
+    var h = Math.max(document.documentElement.scrollHeight, document.body ? document.body.scrollHeight : 0);
+    window.parent.postMessage({ source: 'proto-preview', type: 'size', height: h }, '*');
+  }
+  window.addEventListener('load', postSize);
+  postSize();
+})();`;
+}
+
+function buildLinkModeScript() {
+  const linkedIds = linksData.links
+    .filter((l) => l.screen === currentScreen)
+    .map((l) => l.elementId);
+  return linkModeScript(linkedIds);
+}
+
+async function persistLinks() {
+  linksData = await fetchJson("/api/links", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(linksData),
+  });
+}
+
+function renderLinkTargets() {
+  linkTargetEl.innerHTML = "";
+  for (const s of currentScreens) {
+    if (s.missing) continue;
+    const opt = document.createElement("option");
+    opt.value = s.name;
+    opt.textContent = s.name;
+    linkTargetEl.appendChild(opt);
+  }
+}
+
+function resetLinkSelection() {
+  selectedProtoId = null;
+  linkPanelControlsEl.hidden = true;
+  linkRemoveEl.hidden = true;
+  linkPanelLabelEl.textContent = "Click an element in the preview to link it.";
+}
+
+function onLinkSelect(protoId, label) {
+  selectedProtoId = protoId;
+  linkPanelLabelEl.textContent = `Selected: ${label}`;
+  linkPanelControlsEl.hidden = false;
+  const existing = linksData.links.find(
+    (l) => l.screen === currentScreen && l.elementId === protoId
+  );
+  if (existing) {
+    linkTargetEl.value = existing.target;
+    linkTransitionEl.value = existing.transition;
+    linkRemoveEl.hidden = false;
+  } else {
+    linkTransitionEl.value = "none";
+    linkRemoveEl.hidden = true;
+  }
+}
+
+async function saveLink() {
+  if (!selectedProtoId) return;
+  const id = `${currentScreen}:${selectedProtoId}`;
+  const others = linksData.links.filter(
+    (l) => !(l.screen === currentScreen && l.elementId === selectedProtoId)
+  );
+  linksData.links = [
+    ...others,
+    {
+      id,
+      screen: currentScreen,
+      elementId: selectedProtoId,
+      target: linkTargetEl.value,
+      transition: linkTransitionEl.value,
+    },
+  ];
+  await persistLinks();
+  linkRemoveEl.hidden = false;
+  renderPreview(); // re-outline linked elements
+}
+
+async function removeLink() {
+  if (!selectedProtoId) return;
+  linksData.links = linksData.links.filter(
+    (l) => !(l.screen === currentScreen && l.elementId === selectedProtoId)
+  );
+  await persistLinks();
+  resetLinkSelection();
+  renderPreview();
+}
+
+// Linking targets elements by their stable data-proto-id, which is only
+// injected when HTML is saved through the app. Push the current HTML through
+// the save path once so every element has an id before we start linking.
+async function ensureStableIds() {
+  const content = htmlView.state.doc.toString();
+  const res = await saveScreenFile("html", content);
+  if (res?.content && res.content !== content) {
+    syncs.html._replaceContent(res.content);
+  }
+}
+
+async function setLinkMode(on) {
+  linkMode = on;
+  linkToggleEl.classList.toggle("active", on);
+  linkPanelEl.hidden = !on;
+  if (on) {
+    setOverviewVisible(false);
+    await ensureStableIds();
+    renderLinkTargets();
+    resetLinkSelection();
+  }
+  renderPreview();
+  applyPreviewTransform();
+}
+
+linkToggleEl.addEventListener("click", () => setLinkMode(!linkMode));
+linkSaveEl.addEventListener("click", saveLink);
+linkRemoveEl.addEventListener("click", removeLink);
+
+// --- Play mode (reader) -----------------------------------------------------
+// A full-screen runner: clicking a linked element navigates to its target.
+// The parent owns navigation + history; each screen's srcdoc carries only the
+// link map for that screen.
+
+let playHistory = [];
+let playScreen = null;
+
+function playModeScript(linkMap) {
+  return `(function(){
+  var MAP = ${JSON.stringify(linkMap)};
+  Object.keys(MAP).forEach(function(id){
+    var el = document.querySelector('[data-proto-id="'+id+'"]');
+    if (el) el.style.cursor = 'pointer';
+  });
+  document.addEventListener('click', function(e){
+    var el = e.target.closest ? e.target.closest('[data-proto-id]') : null;
+    while (el) {
+      var id = el.getAttribute('data-proto-id');
+      if (MAP[id]) {
+        e.preventDefault();
+        window.parent.postMessage({ source: 'proto-play', type: 'navigate', target: MAP[id].target, transition: MAP[id].transition }, '*');
+        return;
+      }
+      el = el.parentElement && el.parentElement.closest ? el.parentElement.closest('[data-proto-id]') : null;
+    }
+  }, true);
+})();`;
+}
+
+async function renderPlayScreen(name, transition) {
+  playScreen = name;
+  playScreenNameEl.textContent = name;
+  playBackEl.disabled = playHistory.length === 0;
+
+  const { html: htmlContent, css: cssContent } = await fetchJson(`/api/screen/${name}`);
+  const globalCssContent = globalCssView.state.doc.toString();
+  const map = {};
+  for (const l of linksData.links) {
+    if (l.screen === name) map[l.elementId] = { target: l.target, transition: l.transition };
+  }
+  const srcdoc = composeSrcdoc(htmlContent, cssContent, globalCssContent, {
+    script: playModeScript(map),
+  });
+
+  // Prime the transition's start state, then animate to rest once loaded.
+  playFrameEl.style.transition = "none";
+  if (transition === "fade") {
+    playFrameEl.style.opacity = "0";
+    playFrameEl.style.transform = "none";
+  } else if (transition === "slide") {
+    playFrameEl.style.opacity = "0";
+    playFrameEl.style.transform = "translateX(40px)";
+  } else {
+    playFrameEl.style.opacity = "1";
+    playFrameEl.style.transform = "none";
+  }
+  playFrameEl.onload = () => {
+    playFrameEl.style.transition = "opacity 180ms ease, transform 180ms ease";
+    playFrameEl.style.opacity = "1";
+    playFrameEl.style.transform = "none";
+  };
+  playFrameEl.srcdoc = srcdoc;
+}
+
+async function enterPlayMode(startScreen) {
+  playHistory = [];
+  playModeEl.hidden = false;
+  await renderPlayScreen(startScreen, "none");
+}
+
+function exitPlayMode() {
+  playModeEl.hidden = true;
+  playFrameEl.srcdoc = "";
+  playScreen = null;
+}
+
+function playBack() {
+  if (playHistory.length === 0) return;
+  const prev = playHistory.pop();
+  renderPlayScreen(prev, "none");
+}
+
+playToggleEl.addEventListener("click", () => {
+  if (currentScreen) enterPlayMode(currentScreen);
+});
+playBackEl.addEventListener("click", playBack);
+playExitEl.addEventListener("click", exitPlayMode);
+
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !playModeEl.hidden) exitPlayMode();
+});
+
+window.addEventListener("message", (e) => {
+  if (e.data?.source !== "proto-play" || e.data.type !== "navigate") return;
+  if (e.source !== playFrameEl.contentWindow) return;
+  if (!e.data.target) return;
+  playHistory.push(playScreen);
+  renderPlayScreen(e.data.target, e.data.transition || "none");
+});
+
 function renderDeviceSwitcher() {
   deviceSwitcherEl.innerHTML = "";
   const makeBtn = (label, width) => {
@@ -464,7 +745,7 @@ async function renderOverview() {
     iframe.style.height = `${OVERVIEW_THUMB_HEIGHT / OVERVIEW_SCALE}px`;
     iframe.style.transformOrigin = "top left";
     iframe.style.transform = `scale(${OVERVIEW_SCALE})`;
-    iframe.srcdoc = composeSrcdoc(htmlContent, cssContent, globalCssContent, { bridge: false });
+    iframe.srcdoc = composeSrcdoc(htmlContent, cssContent, globalCssContent, { script: "" });
 
     box.appendChild(iframe);
     card.append(label, box);
@@ -520,6 +801,7 @@ async function loadScreen(name) {
     onConflict: () => showConflictBanner("css", "CSS"),
   });
 
+  if (linkMode) resetLinkSelection();
   renderPreview();
   applyPreviewTransform();
 }
@@ -557,6 +839,8 @@ async function main() {
   const { config, screens, globalCss: globalCssContent, wsPort } = await fetchJson("/api/project");
   deviceSizes = config.deviceSizes || {};
   renderDeviceSwitcher();
+
+  linksData = await fetchJson("/api/links");
 
   globalCssView = makeEditorView(
     document.getElementById("editor-globalCss"),

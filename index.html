@@ -17,6 +17,8 @@
         <div class="device-switcher" id="device-switcher"></div>
         <button class="topbar-btn" id="editor-toggle">Hide code</button>
         <button class="topbar-btn" id="popout-toggle">Pop out</button>
+        <button class="topbar-btn" id="link-toggle">Link</button>
+        <button class="topbar-btn" id="play-toggle">Play</button>
         <button class="topbar-btn" id="overview-toggle">Overview</button>
         <div class="status" id="sync-status">connecting…</div>
       </header>
@@ -52,9 +54,36 @@
           <div class="preview-controls preview-controls-right">
             <button class="preview-ctrl-btn" id="pan-toggle" title="Pan (drag to move)">✋</button>
           </div>
+          <div class="link-panel" id="link-panel" hidden>
+            <span class="link-panel-label" id="link-panel-label">Click an element in the preview to link it.</span>
+            <div class="link-panel-controls" id="link-panel-controls" hidden>
+              <label>Go to
+                <select id="link-target"></select>
+              </label>
+              <label>Transition
+                <select id="link-transition">
+                  <option value="none">None</option>
+                  <option value="fade">Fade</option>
+                  <option value="slide">Slide</option>
+                </select>
+              </label>
+              <button class="topbar-btn" id="link-save">Save link</button>
+              <button class="topbar-btn" id="link-remove" hidden>Remove link</button>
+            </div>
+          </div>
         </section>
       </main>
       <section class="overview-board" id="overview-board" hidden></section>
+    </div>
+  </div>
+  <div class="play-mode" id="play-mode" hidden>
+    <div class="play-bar">
+      <button class="topbar-btn" id="play-back">← Back</button>
+      <span class="play-screen-name" id="play-screen-name"></span>
+      <button class="topbar-btn" id="play-exit">Exit</button>
+    </div>
+    <div class="play-stage">
+      <iframe id="play-frame" sandbox="allow-scripts"></iframe>
     </div>
   </div>
   <script type="module" src="/src/main.js"></script>
