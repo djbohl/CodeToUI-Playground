@@ -39,10 +39,16 @@ export class FileSync {
   async _save() {
     const content = this.view.state.doc.toString();
     const result = await this.saveFn(content);
-    this._setDirty(false);
-    // The server may have rewritten the content (e.g. injecting stable
-    // element ids) -- adopt that back into the buffer so it matches disk.
-    if (result?.content && result.content !== content) {
+    // Only clear dirty if the buffer still matches what we saved; if the user
+    // kept typing during the async save, it's dirty again and a new save is
+    // already queued.
+    const unchanged = this.view.state.doc.toString() === content;
+    if (unchanged) this._setDirty(false);
+    // The server may have rewritten the content (e.g. injecting stable element
+    // ids). Adopt it back ONLY if the user hasn't typed since -- otherwise a
+    // full-document replace would clobber in-flight keystrokes and jump the
+    // cursor. If they have typed, the next (already-queued) save handles it.
+    if (unchanged && result?.content && result.content !== content) {
       this._replaceContent(result.content);
     }
     this.onSaved?.();
@@ -84,8 +90,14 @@ export class FileSync {
   _replaceContent(content) {
     const current = this.view.state.doc.toString();
     if (current === content) return;
+    // Keep the caret roughly where it was (clamped to the new length) so an
+    // adopted rewrite doesn't fling the cursor to the end of the document.
+    const sel = this.view.state.selection.main;
+    const anchor = Math.min(sel.anchor, content.length);
+    const head = Math.min(sel.head, content.length);
     this.view.dispatch({
       changes: { from: 0, to: this.view.state.doc.length, insert: content },
+      selection: { anchor, head },
     });
   }
 }
