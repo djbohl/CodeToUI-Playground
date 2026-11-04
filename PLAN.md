@@ -40,16 +40,16 @@ desktop app for macOS and Windows. Both mount the same backend (`createProtoApi`
 - [x] **Projects** (added): a projects root with multiple projects; list,
   create, switch (active project re-points the backend), and delete from the
   sidebar's Projects manager.
-- [~] **4 — Link mode + Play mode** (in progress, needs testing):
-  - [x] `links.json` API (read/write) and the `{id, screen, elementId, target,
-    transition}` schema.
-  - [x] Link mode: click an element → assign a target screen + transition;
-    linked elements are outlined; stable ids are ensured on entry.
-  - [x] Play mode: full-screen runner with click-through navigation, Back, Esc
-    to exit, and fade/slide transitions.
-  - [ ] Verify end-to-end in the browser (see Verification below).
+- [x] **4 — Link mode + Play mode**:
+  - [x] `links.json` API (read/write); schema `{id, screen, elementId, target,
+    mode, transition}` where `target` may be a screen or `$back` / `$home`.
+  - [x] Link mode: click an element → assign target (screen / Back / Home),
+    open mode (navigate / overlay), and transition; linked elements outlined;
+    stable ids ensured on entry.
+  - [x] Play mode: full-screen runner with click-through navigation, overlay
+    (modal) layers, Back/Home targets, Esc to exit, flash-hotspots toggle, and
+    instant/dissolve/slide-{left,right,up,down} transitions.
   - [ ] Support `data-goto="ScreenName"` in raw HTML as a code-first equivalent.
-  - [ ] "Flash clickable areas" toggle in Play mode.
 - [ ] **5 — Export & polish**:
   - [ ] Standalone HTML that plays the prototype offline (`file://`, zero
     build, zero network) — reuse the Play-mode script as a vanilla template.

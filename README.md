@@ -104,11 +104,19 @@ resulting apps are unsigned; see the warning above.
 - **Overview** — see all screens as thumbnails on one board; click one to jump
   to it.
 - **Link** — wire up navigation without code: click **Link**, click an element
-  in the preview, then pick the screen it should go to and a transition
-  (none/fade/slide). Linked elements get a green outline. Links are stored in
-  `links.json`, keyed to stable element ids so they survive HTML edits.
+  in the preview, then choose:
+  - **Go to** — a screen, or a special target: **← Back** (previous screen /
+    close overlay) or **⌂ Home** (the start screen).
+  - **Open** — **Navigate** (replace the screen) or **Overlay** (open the
+    target on top as a modal with a dimmed backdrop; tap outside to close).
+  - **Transition** — instant, dissolve, or slide left/right/up/down.
+
+  Linked elements get a green outline. Links are stored in `links.json`, keyed
+  to stable element ids so they survive HTML edits.
 - **Play** — click **Play** to run the prototype full-screen: clicking linked
-  elements navigates between screens, **← Back** steps back, and **Esc** exits.
+  elements navigates (or opens overlays), **← Back** steps back / closes
+  overlays, **Flash hotspots** highlights every clickable area, and **Esc**
+  exits.
 - **Theme** — the **☾/☀** button toggles light/dark; your choice is remembered.
 
 ## How projects are stored
