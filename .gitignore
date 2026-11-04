@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Build / dev-server output
+dist/
+.vite/
+
+# Generated prototype exports (standalone HTML, PNGs, zips)
+project/exports/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor / OS cruft
+.DS_Store
+*.swp
+.idea/
+.vscode/
