@@ -65,11 +65,20 @@
               <label>Go to
                 <select id="link-target"></select>
               </label>
+              <label>Open
+                <select id="link-mode">
+                  <option value="navigate">Navigate</option>
+                  <option value="overlay">Overlay</option>
+                </select>
+              </label>
               <label>Transition
                 <select id="link-transition">
-                  <option value="none">None</option>
-                  <option value="fade">Fade</option>
-                  <option value="slide">Slide</option>
+                  <option value="instant">Instant</option>
+                  <option value="dissolve">Dissolve</option>
+                  <option value="slide-left">Slide left</option>
+                  <option value="slide-right">Slide right</option>
+                  <option value="slide-up">Slide up</option>
+                  <option value="slide-down">Slide down</option>
                 </select>
               </label>
               <button class="topbar-btn" id="link-save">Save link</button>
@@ -99,9 +108,12 @@
     <div class="play-bar">
       <button class="topbar-btn" id="play-back">← Back</button>
       <span class="play-screen-name" id="play-screen-name"></span>
-      <button class="topbar-btn" id="play-exit">Exit</button>
+      <span class="play-bar-right">
+        <button class="topbar-btn" id="play-flash">Flash hotspots</button>
+        <button class="topbar-btn" id="play-exit">Exit</button>
+      </span>
     </div>
-    <div class="play-stage">
+    <div class="play-stage" id="play-stage">
       <iframe id="play-frame" sandbox="allow-scripts"></iframe>
     </div>
   </div>

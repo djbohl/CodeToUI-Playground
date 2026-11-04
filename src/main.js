@@ -28,14 +28,17 @@ const linkPanelEl = document.getElementById("link-panel");
 const linkPanelLabelEl = document.getElementById("link-panel-label");
 const linkPanelControlsEl = document.getElementById("link-panel-controls");
 const linkTargetEl = document.getElementById("link-target");
+const linkModeEl = document.getElementById("link-mode");
 const linkTransitionEl = document.getElementById("link-transition");
 const linkSaveEl = document.getElementById("link-save");
 const linkRemoveEl = document.getElementById("link-remove");
 const playToggleEl = document.getElementById("play-toggle");
 const playModeEl = document.getElementById("play-mode");
+const playStageEl = document.getElementById("play-stage");
 const playFrameEl = document.getElementById("play-frame");
 const playScreenNameEl = document.getElementById("play-screen-name");
 const playBackEl = document.getElementById("play-back");
+const playFlashEl = document.getElementById("play-flash");
 const playExitEl = document.getElementById("play-exit");
 const themeToggleEl = document.getElementById("theme-toggle");
 const projectsToggleEl = document.getElementById("projects-toggle");
@@ -494,6 +497,29 @@ function linkModeScript(linkedIds) {
 })();`;
 }
 
+// Special link targets (can't collide with screen names, which are limited to
+// [A-Za-z0-9 _-]).
+const TARGET_BACK = "$back";
+const TARGET_HOME = "$home";
+
+const TRANSITIONS = new Set([
+  "instant",
+  "dissolve",
+  "slide-left",
+  "slide-right",
+  "slide-up",
+  "slide-down",
+]);
+
+// Map older/legacy transition values onto the current set.
+function normalizeTransition(t) {
+  if (TRANSITIONS.has(t)) return t;
+  if (t === "none") return "instant";
+  if (t === "fade") return "dissolve";
+  if (t === "slide") return "slide-left";
+  return "instant";
+}
+
 function buildLinkModeScript() {
   const linkedIds = linksData.links
     .filter((l) => l.screen === currentScreen)
@@ -511,6 +537,16 @@ async function persistLinks() {
 
 function renderLinkTargets() {
   linkTargetEl.innerHTML = "";
+  const special = [
+    [TARGET_BACK, "← Back"],
+    [TARGET_HOME, "⌂ Home (start screen)"],
+  ];
+  for (const [value, text] of special) {
+    const opt = document.createElement("option");
+    opt.value = value;
+    opt.textContent = text;
+    linkTargetEl.appendChild(opt);
+  }
   for (const s of currentScreens) {
     if (s.missing) continue;
     const opt = document.createElement("option");
@@ -536,10 +572,12 @@ function onLinkSelect(protoId, label) {
   );
   if (existing) {
     linkTargetEl.value = existing.target;
-    linkTransitionEl.value = existing.transition;
+    linkModeEl.value = existing.mode === "overlay" ? "overlay" : "navigate";
+    linkTransitionEl.value = normalizeTransition(existing.transition);
     linkRemoveEl.hidden = false;
   } else {
-    linkTransitionEl.value = "none";
+    linkModeEl.value = "navigate";
+    linkTransitionEl.value = "instant";
     linkRemoveEl.hidden = true;
   }
 }
@@ -550,13 +588,18 @@ async function saveLink() {
   const others = linksData.links.filter(
     (l) => !(l.screen === currentScreen && l.elementId === selectedProtoId)
   );
+  const target = linkTargetEl.value;
+  // Overlay only makes sense for a real destination screen, not Back/Home.
+  const mode =
+    target === TARGET_BACK || target === TARGET_HOME ? "navigate" : linkModeEl.value;
   linksData.links = [
     ...others,
     {
       id,
       screen: currentScreen,
       elementId: selectedProtoId,
-      target: linkTargetEl.value,
+      target,
+      mode,
       transition: linkTransitionEl.value,
     },
   ];
@@ -605,27 +648,54 @@ linkSaveEl.addEventListener("click", saveLink);
 linkRemoveEl.addEventListener("click", removeLink);
 
 // --- Play mode (reader) -----------------------------------------------------
-// A full-screen runner: clicking a linked element navigates to its target.
-// The parent owns navigation + history; each screen's srcdoc carries only the
-// link map for that screen.
+// A full-screen runner. Clicking a linked element navigates to its target, or
+// opens it as an overlay. The parent owns navigation, history, and the overlay
+// stack; each rendered screen carries only the link map for that screen.
 
+let startScreenName = null;
+let playBase = null;
 let playHistory = [];
-let playScreen = null;
+let playOverlays = []; // [{ el, frame, screen }], top of stack is last
+let playFlash = false;
 
-function playModeScript(linkMap) {
+function screenLinkMap(name) {
+  const map = {};
+  for (const l of linksData.links) {
+    if (l.screen === name) {
+      map[l.elementId] = {
+        target: l.target,
+        transition: normalizeTransition(l.transition),
+        mode: l.mode === "overlay" ? "overlay" : "navigate",
+      };
+    }
+  }
+  return map;
+}
+
+function playModeScript(linkMap, flash) {
   return `(function(){
   var MAP = ${JSON.stringify(linkMap)};
+  var FLASH = ${flash ? "true" : "false"};
   Object.keys(MAP).forEach(function(id){
     var el = document.querySelector('[data-proto-id="'+id+'"]');
     if (el) el.style.cursor = 'pointer';
   });
+  if (FLASH) {
+    var st = document.createElement('style');
+    st.textContent = '[data-proto-hotspot]{outline:2px dashed rgba(255,77,157,.9) !important;outline-offset:2px;background:rgba(255,77,157,.12) !important;}';
+    document.head.appendChild(st);
+    Object.keys(MAP).forEach(function(id){
+      var el = document.querySelector('[data-proto-id="'+id+'"]');
+      if (el) el.setAttribute('data-proto-hotspot','');
+    });
+  }
   document.addEventListener('click', function(e){
     var el = e.target.closest ? e.target.closest('[data-proto-id]') : null;
     while (el) {
       var id = el.getAttribute('data-proto-id');
       if (MAP[id]) {
         e.preventDefault();
-        window.parent.postMessage({ source: 'proto-play', type: 'navigate', target: MAP[id].target, transition: MAP[id].transition }, '*');
+        window.parent.postMessage({ source: 'proto-play', type: 'navigate', target: MAP[id].target, transition: MAP[id].transition, mode: MAP[id].mode }, '*');
         return;
       }
       el = el.parentElement && el.parentElement.closest ? el.parentElement.closest('[data-proto-id]') : null;
@@ -634,57 +704,136 @@ function playModeScript(linkMap) {
 })();`;
 }
 
-async function renderPlayScreen(name, transition) {
-  playScreen = name;
-  playScreenNameEl.textContent = name;
-  playBackEl.disabled = playHistory.length === 0;
-
+async function composePlayScreen(name) {
   const { html: htmlContent, css: cssContent } = await fetchJson(`/api/screen/${name}`);
   const globalCssContent = globalCssView.state.doc.toString();
-  const map = {};
-  for (const l of linksData.links) {
-    if (l.screen === name) map[l.elementId] = { target: l.target, transition: l.transition };
-  }
-  const srcdoc = composeSrcdoc(htmlContent, cssContent, globalCssContent, {
-    script: playModeScript(map),
+  return composeSrcdoc(htmlContent, cssContent, globalCssContent, {
+    script: playModeScript(screenLinkMap(name), playFlash),
   });
+}
 
-  // Prime the transition's start state, then animate to rest once loaded.
-  playFrameEl.style.transition = "none";
-  if (transition === "fade") {
-    playFrameEl.style.opacity = "0";
-    playFrameEl.style.transform = "none";
-  } else if (transition === "slide") {
-    playFrameEl.style.opacity = "0";
-    playFrameEl.style.transform = "translateX(40px)";
-  } else {
-    playFrameEl.style.opacity = "1";
-    playFrameEl.style.transform = "none";
+// Start-of-transition style; the frame animates from here to rest on load.
+function transitionStartStyle(transition) {
+  switch (transition) {
+    case "dissolve":
+      return { opacity: "0", transform: "none" };
+    case "slide-left":
+      return { opacity: "0", transform: "translateX(48px)" };
+    case "slide-right":
+      return { opacity: "0", transform: "translateX(-48px)" };
+    case "slide-up":
+      return { opacity: "0", transform: "translateY(48px)" };
+    case "slide-down":
+      return { opacity: "0", transform: "translateY(-48px)" };
+    default: // instant
+      return { opacity: "1", transform: "none" };
   }
-  playFrameEl.onload = () => {
-    playFrameEl.style.transition = "opacity 180ms ease, transform 180ms ease";
-    playFrameEl.style.opacity = "1";
-    playFrameEl.style.transform = "none";
+}
+
+function animateFrameIn(frame, transition) {
+  const start = transitionStartStyle(transition);
+  frame.style.transition = "none";
+  frame.style.opacity = start.opacity;
+  frame.style.transform = start.transform;
+  frame.onload = () => {
+    frame.style.transition = "opacity 180ms ease, transform 180ms ease";
+    frame.style.opacity = "1";
+    frame.style.transform = "none";
   };
-  playFrameEl.srcdoc = srcdoc;
+}
+
+function updateBackButton() {
+  playBackEl.disabled = playOverlays.length === 0 && playHistory.length === 0;
+}
+
+async function renderBase(name, transition) {
+  playBase = name;
+  playScreenNameEl.textContent = name;
+  animateFrameIn(playFrameEl, transition);
+  playFrameEl.srcdoc = await composePlayScreen(name);
+  updateBackButton();
+}
+
+async function openOverlay(name, transition) {
+  const el = document.createElement("div");
+  el.className = "play-overlay";
+  const frame = document.createElement("iframe");
+  frame.className = "play-overlay-frame";
+  frame.setAttribute("sandbox", "allow-scripts");
+  el.appendChild(frame);
+  // Click on the dim backdrop (outside the frame) closes this overlay.
+  el.addEventListener("click", (e) => {
+    if (e.target === el) closeTopOverlay();
+  });
+  playStageEl.appendChild(el);
+  playOverlays.push({ el, frame, screen: name });
+  animateFrameIn(frame, transition === "instant" ? "dissolve" : transition);
+  frame.srcdoc = await composePlayScreen(name);
+  updateBackButton();
+}
+
+function closeTopOverlay() {
+  const top = playOverlays.pop();
+  if (top) top.el.remove();
+  updateBackButton();
+}
+
+function closeAllOverlays() {
+  for (const o of playOverlays) o.el.remove();
+  playOverlays = [];
+}
+
+async function playNavigate({ target, transition, mode }) {
+  transition = normalizeTransition(transition);
+  if (target === TARGET_BACK) {
+    playBack();
+    return;
+  }
+  if (target === TARGET_HOME) {
+    closeAllOverlays();
+    if (playBase && playBase !== startScreenName) playHistory.push(playBase);
+    await renderBase(startScreenName, transition);
+    return;
+  }
+  if (mode === "overlay") {
+    await openOverlay(target, transition);
+    return;
+  }
+  closeAllOverlays();
+  if (playBase) playHistory.push(playBase);
+  await renderBase(target, transition);
+}
+
+function playBack() {
+  if (playOverlays.length > 0) {
+    closeTopOverlay();
+    return;
+  }
+  if (playHistory.length === 0) return;
+  renderBase(playHistory.pop(), "dissolve");
 }
 
 async function enterPlayMode(startScreen) {
   playHistory = [];
+  closeAllOverlays();
   playModeEl.hidden = false;
-  await renderPlayScreen(startScreen, "none");
+  await renderBase(startScreen, "instant");
 }
 
 function exitPlayMode() {
+  closeAllOverlays();
   playModeEl.hidden = true;
   playFrameEl.srcdoc = "";
-  playScreen = null;
+  playBase = null;
 }
 
-function playBack() {
-  if (playHistory.length === 0) return;
-  const prev = playHistory.pop();
-  renderPlayScreen(prev, "none");
+async function toggleFlash() {
+  playFlash = !playFlash;
+  playFlashEl.classList.toggle("active", playFlash);
+  // Re-render the base and any overlays in place (no entrance animation).
+  playFrameEl.style.transition = "none";
+  playFrameEl.srcdoc = await composePlayScreen(playBase);
+  for (const o of playOverlays) o.frame.srcdoc = await composePlayScreen(o.screen);
 }
 
 playToggleEl.addEventListener("click", () => {
@@ -692,6 +841,7 @@ playToggleEl.addEventListener("click", () => {
 });
 playBackEl.addEventListener("click", playBack);
 playExitEl.addEventListener("click", exitPlayMode);
+playFlashEl.addEventListener("click", toggleFlash);
 
 window.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && !playModeEl.hidden) exitPlayMode();
@@ -699,10 +849,8 @@ window.addEventListener("keydown", (e) => {
 
 window.addEventListener("message", (e) => {
   if (e.data?.source !== "proto-play" || e.data.type !== "navigate") return;
-  if (e.source !== playFrameEl.contentWindow) return;
-  if (!e.data.target) return;
-  playHistory.push(playScreen);
-  renderPlayScreen(e.data.target, e.data.transition || "none");
+  if (playModeEl.hidden || !e.data.target) return;
+  playNavigate({ target: e.data.target, transition: e.data.transition, mode: e.data.mode });
 });
 
 function renderDeviceSwitcher() {
@@ -991,6 +1139,7 @@ async function main() {
   });
 
   const startScreen = config.startScreen || screens[0]?.name;
+  startScreenName = startScreen;
   await loadScreen(startScreen);
   renderSidebar(screens);
 
