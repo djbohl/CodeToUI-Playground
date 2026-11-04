@@ -3,12 +3,13 @@ import path from "node:path";
 
 export async function readScreenFiles(projectDir, screenName) {
   const dir = path.join(projectDir, "screens", screenName);
-  const [html, css, js] = await Promise.all([
-    readFile(path.join(dir, `${screenName}.html`), "utf8"),
+  const [html, css, js, jsx] = await Promise.all([
+    readFile(path.join(dir, `${screenName}.html`), "utf8").catch(() => ""),
     readFile(path.join(dir, `${screenName}.css`), "utf8").catch(() => ""),
     readFile(path.join(dir, `${screenName}.js`), "utf8").catch(() => ""),
+    readFile(path.join(dir, `${screenName}.jsx`), "utf8").catch(() => ""),
   ]);
-  return { html, css, js };
+  return { html, css, js, jsx };
 }
 
 export async function readGlobalCss(projectDir) {

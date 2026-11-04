@@ -3,7 +3,7 @@ import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import { ProjectWatcher } from "./watcher.js";
 import { readScreenFiles, readGlobalCss } from "./render-pipeline.js";
-import { reconcileScreens, createScreen, deleteScreen } from "./screens.js";
+import { reconcileScreens, createScreen, deleteScreen, setScreenFramework } from "./screens.js";
 import { assignStableIds } from "./stable-ids.js";
 import { readLinks, writeLinks } from "./links.js";
 import { screenshotScreens, pdfScreens, closeBrowser } from "./render-export.js";
@@ -30,8 +30,8 @@ function pathToScreenFile(projectDir, absPath) {
   const parts = rel.split(path.sep);
   if (parts.length !== 2) return null;
   const [screen, filename] = parts;
-  const ext = path.extname(filename).slice(1); // 'html' | 'css' | 'js'
-  if (ext !== "html" && ext !== "css" && ext !== "js") return null;
+  const ext = path.extname(filename).slice(1); // 'html' | 'css' | 'js' | 'jsx'
+  if (!["html", "css", "js", "jsx"].includes(ext)) return null;
   return { screen, file: ext };
 }
 
@@ -153,6 +153,13 @@ export function createProtoApi({ projectsRoot, wsPort, initialProject }) {
         return;
       }
 
+      if (req.url === "/api/screen-framework" && req.method === "POST") {
+        const body = await readJsonBody(req);
+        const config = await setScreenFramework(activeDir, body.screen, body.framework);
+        json({ config });
+        return;
+      }
+
       const screensMatch = req.url.match(/^\/api\/screens\/([^/]+)$/);
       if (screensMatch && req.method === "DELETE") {
         const name = decodeURIComponent(screensMatch[1]);
@@ -238,8 +245,8 @@ export function createProtoApi({ projectsRoot, wsPort, initialProject }) {
       if (screenMatch && req.method === "POST") {
         const screen = decodeURIComponent(screenMatch[1]);
         const body = await readJsonBody(req);
-        const { file, content } = body; // file: 'html' | 'css' | 'js'
-        if (file !== "html" && file !== "css" && file !== "js") {
+        const { file, content } = body; // file: 'html' | 'css' | 'js' | 'jsx'
+        if (!["html", "css", "js", "jsx"].includes(file)) {
           res.statusCode = 400;
           res.end("invalid file type");
           return;

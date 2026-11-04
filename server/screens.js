@@ -42,6 +42,38 @@ export async function createScreen(projectDir, name) {
 }
 
 /**
+ * Set a screen's framework ("vanilla" or "react") in proto.config.json. When
+ * switching to React and the screen has no .jsx yet, scaffold a starter
+ * component. Non-destructive: existing html/css/js are left in place so the
+ * screen can be toggled back.
+ */
+export async function setScreenFramework(projectDir, name, framework) {
+  if (framework !== "vanilla" && framework !== "react") {
+    throw new Error("framework must be 'vanilla' or 'react'.");
+  }
+  const configPath = path.join(projectDir, "proto.config.json");
+  const config = JSON.parse(await readFile(configPath, "utf8"));
+  if (!config.screens.includes(name)) throw new Error(`Screen "${name}" not found.`);
+
+  config.frameworks = config.frameworks || {};
+  if (framework === "vanilla") delete config.frameworks[name];
+  else config.frameworks[name] = "react";
+  await writeFile(configPath, JSON.stringify(config, null, 2) + "\n", "utf8");
+
+  if (framework === "react") {
+    const jsxPath = path.join(projectDir, "screens", name, `${name}.jsx`);
+    if (!(await pathExists(jsxPath))) {
+      await writeFile(
+        jsxPath,
+        `function App() {\n  const [count, setCount] = React.useState(0);\n  return (\n    <main>\n      <h1>${name}</h1>\n      <button onClick={() => setCount(count + 1)}>Clicked {count} times</button>\n    </main>\n  );\n}\n`,
+        "utf8"
+      );
+    }
+  }
+  return config;
+}
+
+/**
  * Delete a screen: remove its folder and config entry. Refuses to delete the
  * last screen. If it was the start screen, the start moves to the first
  * remaining one. Links are cleaned up separately by the caller.
