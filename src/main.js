@@ -163,7 +163,7 @@ function setupTabs() {
   });
 }
 
-const previewPaneEl = document.querySelector(".preview-pane");
+const previewScrollEl = document.getElementById("preview-scroll");
 let currentDeviceWidth = null; // null = "Full": base width tracks the pane's own width
 let zoomLevel = 1;
 let previewContentHeight = 0; // measured from the iframe via the bridge; 0 = not yet known
@@ -187,8 +187,8 @@ const ZOOM_MAX = 4;
  * constrained to the chosen device size.
  */
 function applyPreviewTransform() {
-  const paneW = previewPaneEl.clientWidth;
-  const paneH = previewPaneEl.clientHeight;
+  const paneW = previewScrollEl.clientWidth;
+  const paneH = previewScrollEl.clientHeight;
   const baseWidth = currentDeviceWidth || paneW;
   const baseHeight = previewContentHeight || paneH;
   const fitScale = Math.min(1, paneW / baseWidth);
@@ -219,7 +219,7 @@ function zoomByWheelDelta(deltaY) {
 // plain wheel pans via the pane's native scroll. This listener only catches
 // events over the letterboxed margin -- events over the iframe itself come in
 // through the postMessage bridge below.
-previewPaneEl.addEventListener(
+previewScrollEl.addEventListener(
   "wheel",
   (e) => {
     if (!e.ctrlKey) return;
@@ -247,7 +247,7 @@ window.addEventListener("message", (e) => {
     if (e.data.ctrlKey) {
       zoomByWheelDelta(e.data.deltaY);
     } else {
-      previewPaneEl.scrollBy({ left: e.data.deltaX, top: e.data.deltaY });
+      previewScrollEl.scrollBy({ left: e.data.deltaX, top: e.data.deltaY });
     }
   }
 });
@@ -381,7 +381,7 @@ panOverlayEl.addEventListener("pointerdown", (e) => {
 panOverlayEl.addEventListener("pointermove", (e) => {
   if (!panning) return;
   // Drag the content: move the scroll position opposite the pointer.
-  previewPaneEl.scrollBy({ left: panLastX - e.clientX, top: panLastY - e.clientY });
+  previewScrollEl.scrollBy({ left: panLastX - e.clientX, top: panLastY - e.clientY });
   panLastX = e.clientX;
   panLastY = e.clientY;
 });

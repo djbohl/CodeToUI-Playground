@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Design + Prototype</title>
+  <title>CodeToUI Playground</title>
   <link rel="stylesheet" href="/src/styles.css" />
 </head>
 <body>
@@ -33,19 +33,23 @@
           <div id="conflict-banner" class="conflict-banner" hidden></div>
         </section>
         <section class="preview-pane">
-          <div class="preview-stage" id="preview-stage">
-            <div class="preview-frame" id="preview-frame">
-              <iframe id="preview" sandbox="allow-scripts"></iframe>
+          <div class="preview-scroll" id="preview-scroll">
+            <div class="preview-stage" id="preview-stage">
+              <div class="preview-frame" id="preview-frame">
+                <iframe id="preview" sandbox="allow-scripts"></iframe>
+              </div>
+            </div>
+            <div class="preview-popout-note" id="preview-popout-note" hidden>
+              <div>Preview is open in a separate window.</div>
+              <button class="topbar-btn" id="popout-return">Pop preview back in</button>
             </div>
           </div>
-          <div class="preview-popout-note" id="preview-popout-note" hidden>
-            <div>Preview is open in a separate window.</div>
-            <button class="topbar-btn" id="popout-return">Pop preview back in</button>
-          </div>
           <div class="preview-pan-overlay" id="preview-pan-overlay" hidden></div>
-          <div class="preview-controls" id="preview-controls">
+          <div class="preview-controls preview-controls-left">
             <button class="preview-ctrl-btn" id="zoom-out" title="Zoom out">−</button>
             <button class="preview-ctrl-btn" id="zoom-in" title="Zoom in">+</button>
+          </div>
+          <div class="preview-controls preview-controls-right">
             <button class="preview-ctrl-btn" id="pan-toggle" title="Pan (drag to move)">✋</button>
           </div>
         </section>

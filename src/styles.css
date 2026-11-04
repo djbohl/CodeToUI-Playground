@@ -239,16 +239,24 @@ body {
   font-size: 12px;
 }
 
-/* The pane is the scroll viewport. `safe center` keeps the stage centered
-   while it fits, but falls back to start-alignment once it overflows, so you
-   can always scroll/pan to the top-left edge instead of having it clipped. */
+/* Fixed shell: positioning context for the controls/overlay, which stay put
+   while the inner scroller moves. */
 .preview-pane {
   position: relative;
+  min-width: 0;
+  overflow: hidden;
+  background: #06070a;
+}
+
+/* The actual scroll viewport. `safe center` keeps the stage centered while it
+   fits, but falls back to start-alignment once it overflows, so you can always
+   scroll/pan to the top-left edge instead of having it clipped. */
+.preview-scroll {
+  position: absolute;
+  inset: 0;
   display: flex;
   justify-content: safe center;
   align-items: safe center;
-  min-width: 0;
-  background: #06070a;
   overflow: auto;
 }
 
@@ -270,14 +278,22 @@ body {
   display: none;
 }
 
-/* Pinned bottom-right, above the pan overlay so the buttons stay clickable. */
+/* Pinned to the pane viewport, above the pan overlay so they stay clickable
+   and don't move when the preview is scrolled/panned. */
 .preview-controls {
   position: absolute;
-  right: 12px;
-  bottom: 12px;
+  top: 12px;
   z-index: 6;
   display: flex;
   gap: 6px;
+}
+
+.preview-controls-left {
+  left: 12px;
+}
+
+.preview-controls-right {
+  right: 12px;
 }
 
 .preview-ctrl-btn {
