@@ -1169,7 +1169,7 @@ exportPdfEl.addEventListener("click", async () => {
     res = await fetch("/api/export/pdf", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ screens: names, deviceWidth: currentDeviceWidth || 1280 }),
+      body: JSON.stringify({ screens: names, deviceWidth: currentDeviceWidth || 1280, mockup: exportMockupEl.value }),
     });
   } catch (err) {
     return exportStatus(`PDF export failed: ${err.message}`);

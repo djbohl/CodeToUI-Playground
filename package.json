@@ -26,7 +26,7 @@
     "ws": "^8.18.0"
   },
   "optionalDependencies": {
-    "puppeteer": "^23.0.0"
+    "puppeteer": "^24.15.0"
   },
   "devDependencies": {
     "@codemirror/lang-css": "^6.3.1",
@@ -49,8 +49,14 @@
       "package.json"
     ],
     "extraResources": [
-      { "from": "dist", "to": "dist" },
-      { "from": "projects", "to": "projects" }
+      {
+        "from": "dist",
+        "to": "dist"
+      },
+      {
+        "from": "projects",
+        "to": "projects"
+      }
     ],
     "mac": {
       "target": [

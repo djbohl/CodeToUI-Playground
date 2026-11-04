@@ -68,14 +68,19 @@ function frameHtml(dataUri, mockup) {
   </body></html>`;
 }
 
+// Some mockups imply a render width (a phone frame should wrap phone-width
+// content, not whatever device size the preview happened to be on).
+const MOCKUP_WIDTH = { phone: 390 };
+
 /** Returns [{ name, b64 }] PNG screenshots, optionally wrapped in a mockup. */
 export async function screenshotScreens({ projectDir, screens, deviceWidth = 1280, mockup = "none" }) {
   const browser = await getBrowser();
+  const renderWidth = MOCKUP_WIDTH[mockup] || deviceWidth;
   const out = [];
   for (const name of screens) {
     const page = await browser.newPage();
     try {
-      await page.setViewport({ width: deviceWidth, height: 800, deviceScaleFactor: 2 });
+      await page.setViewport({ width: renderWidth, height: 800, deviceScaleFactor: 2 });
       await page.setContent(await screenHtml(projectDir, name), { waitUntil: "load" });
       // Puppeteer v23+ returns a Uint8Array; wrap in Buffer for real base64.
       let buf = Buffer.from(await page.screenshot({ fullPage: true, type: "png" }));
@@ -94,8 +99,8 @@ export async function screenshotScreens({ projectDir, screens, deviceWidth = 128
 }
 
 /** Multi-page PDF: one screen per page (built from the screenshots). */
-export async function pdfScreens({ projectDir, screens, deviceWidth = 1280 }) {
-  const shots = await screenshotScreens({ projectDir, screens, deviceWidth });
+export async function pdfScreens({ projectDir, screens, deviceWidth = 1280, mockup = "none" }) {
+  const shots = await screenshotScreens({ projectDir, screens, deviceWidth, mockup });
   const browser = await getBrowser();
   const page = await browser.newPage();
   try {
