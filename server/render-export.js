@@ -77,12 +77,13 @@ export async function screenshotScreens({ projectDir, screens, deviceWidth = 128
     try {
       await page.setViewport({ width: deviceWidth, height: 800, deviceScaleFactor: 2 });
       await page.setContent(await screenHtml(projectDir, name), { waitUntil: "load" });
-      let buf = await page.screenshot({ fullPage: true, type: "png" });
+      // Puppeteer v23+ returns a Uint8Array; wrap in Buffer for real base64.
+      let buf = Buffer.from(await page.screenshot({ fullPage: true, type: "png" }));
       if (mockup && mockup !== "none") {
         const dataUri = "data:image/png;base64," + buf.toString("base64");
         await page.setContent(frameHtml(dataUri, mockup), { waitUntil: "load" });
         const el = await page.$(".frame");
-        buf = await el.screenshot({ type: "png", omitBackground: true });
+        buf = Buffer.from(await el.screenshot({ type: "png", omitBackground: true }));
       }
       out.push({ name, b64: buf.toString("base64") });
     } finally {

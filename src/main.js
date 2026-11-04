@@ -1137,20 +1137,24 @@ exportImagesEl.addEventListener("click", async () => {
   if (!names.length) return exportStatus("Pick at least one page.");
   await saveAll();
   exportStatus("Rendering images…");
-  const res = await fetch("/api/export/images", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ screens: names, deviceWidth: currentDeviceWidth || 1280, mockup: exportMockupEl.value }),
-  });
-  if (!res.ok) return exportStatus(await res.text());
-  const { files } = await res.json();
-  if (files.length === 1) {
-    downloadBlob(new Blob([b64ToBytes(files[0].b64)], { type: "image/png" }), `${files[0].name}.png`);
-  } else {
-    const zip = buildZip(files.map((f) => ({ path: `${f.name}.png`, content: b64ToBytes(f.b64) })));
-    downloadBlob(new Blob([zip], { type: "application/zip" }), `${projectSlug()}-images.zip`);
+  try {
+    const res = await fetch("/api/export/images", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ screens: names, deviceWidth: currentDeviceWidth || 1280, mockup: exportMockupEl.value }),
+    });
+    if (!res.ok) return exportStatus(await res.text());
+    const { files } = await res.json();
+    if (files.length === 1) {
+      downloadBlob(new Blob([b64ToBytes(files[0].b64)], { type: "image/png" }), `${files[0].name}.png`);
+    } else {
+      const zip = buildZip(files.map((f) => ({ path: `${f.name}.png`, content: b64ToBytes(f.b64) })));
+      downloadBlob(new Blob([zip], { type: "application/zip" }), `${projectSlug()}-images.zip`);
+    }
+    exportStatus("Images exported ✓");
+  } catch (err) {
+    exportStatus(`Image export failed: ${err.message}`);
   }
-  exportStatus("Images exported ✓");
 });
 
 exportPdfEl.addEventListener("click", async () => {
@@ -1160,17 +1164,22 @@ exportPdfEl.addEventListener("click", async () => {
   exportStatus("Rendering PDF…");
   // Prefer the crisp headless PDF; fall back to the browser's print dialog if
   // Puppeteer isn't installed.
-  const res = await fetch("/api/export/pdf", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ screens: names, deviceWidth: currentDeviceWidth || 1280 }),
-  });
+  let res;
+  try {
+    res = await fetch("/api/export/pdf", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ screens: names, deviceWidth: currentDeviceWidth || 1280 }),
+    });
+  } catch (err) {
+    return exportStatus(`PDF export failed: ${err.message}`);
+  }
   if (res.ok) {
     downloadBlob(await res.blob(), `${projectSlug()}.pdf`);
     exportStatus("PDF exported ✓");
     return;
   }
-  // 501 = no Puppeteer: use the print fallback.
+  // non-OK (e.g. 501 = no Puppeteer): use the print fallback.
   const screens = await fetchScreensContent(names);
   const ok = openPrintWindow({
     screens,
@@ -1178,7 +1187,7 @@ exportPdfEl.addEventListener("click", async () => {
     deviceWidth: currentDeviceWidth,
     title: currentProjectEl.textContent,
   });
-  exportStatus(ok ? "Puppeteer not installed — opened print view (choose 'Save as PDF')." : "Popup blocked — allow popups and retry.");
+  exportStatus(ok ? "Opened print view — choose 'Save as PDF'." : "Popup blocked — allow popups and retry.");
 });
 
 // --- Insert element menu ----------------------------------------------------
