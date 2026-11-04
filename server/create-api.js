@@ -5,6 +5,7 @@ import { ProjectWatcher } from "./watcher.js";
 import { readScreenFiles, readGlobalCss } from "./render-pipeline.js";
 import { reconcileScreens } from "./screens.js";
 import { assignStableIds } from "./stable-ids.js";
+import { readLinks, writeLinks } from "./links.js";
 
 async function readJsonBody(req) {
   const chunks = [];
@@ -67,6 +68,21 @@ export function createProtoApi({ projectDir, wsPort }) {
         const globalCss = await readGlobalCss(projectDir);
         res.setHeader("Content-Type", "application/json");
         res.end(JSON.stringify({ config, screens, globalCss, wsPort }));
+        return;
+      }
+
+      if (req.url === "/api/links" && req.method === "GET") {
+        const data = await readLinks(projectDir);
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify(data));
+        return;
+      }
+
+      if (req.url === "/api/links" && req.method === "POST") {
+        const body = await readJsonBody(req);
+        const out = await writeLinks(projectDir, body);
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify(out));
         return;
       }
 
