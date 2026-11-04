@@ -46,7 +46,7 @@
     ],
     "extraResources": [
       { "from": "dist", "to": "dist" },
-      { "from": "project", "to": "project" }
+      { "from": "projects", "to": "projects" }
     ],
     "mac": {
       "target": [

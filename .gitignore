@@ -9,7 +9,10 @@ dist/
 release/
 
 # Generated prototype exports (standalone HTML, PNGs, zips)
-project/exports/
+projects/*/exports/
+
+# The projects root's active-project pointer (local state)
+projects/.active
 
 # Logs
 *.log

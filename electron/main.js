@@ -6,6 +6,7 @@ import fs from "node:fs";
 import connect from "connect";
 import serveStatic from "serve-static";
 import { createProtoApi } from "../server/create-api.js";
+import { ensureProjectsRoot } from "../server/projects.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -16,19 +17,19 @@ let api = null;
 let httpServer = null;
 
 /**
- * The project folder must be writable and easy for the user to find (so they
+ * The projects root must be writable and easy for the user to find (so they
  * can also edit it with Claude Code / Codex CLI). We keep it in the user's
- * Documents, seeded once from the starter project bundled with the app.
+ * Documents; each project is a subfolder. It's seeded once from the starter
+ * projects bundled with the app.
  */
-function resolveProjectDir() {
-  const dir = path.join(app.getPath("documents"), "CodeToUI Playground");
-  if (!fs.existsSync(dir)) {
-    const starter = app.isPackaged
-      ? path.join(process.resourcesPath, "project")
-      : path.join(__dirname, "..", "project");
-    fs.cpSync(starter, dir, { recursive: true });
-  }
-  return dir;
+function resolveProjectsRoot() {
+  return path.join(app.getPath("documents"), "CodeToUI Playground");
+}
+
+function bundledProjectsDir() {
+  return app.isPackaged
+    ? path.join(process.resourcesPath, "projects")
+    : path.join(__dirname, "..", "projects");
 }
 
 function resolveClientDir() {
@@ -38,11 +39,14 @@ function resolveClientDir() {
     : path.join(__dirname, "..", "dist");
 }
 
-function startServer() {
-  const projectDir = resolveProjectDir();
+async function startServer() {
+  const projectsRoot = resolveProjectsRoot();
   const clientDir = resolveClientDir();
 
-  api = createProtoApi({ projectDir, wsPort: WS_PORT });
+  const initialProject = await ensureProjectsRoot(projectsRoot, {
+    seedFrom: bundledProjectsDir(),
+  });
+  api = createProtoApi({ projectsRoot, wsPort: WS_PORT, initialProject });
 
   const connectApp = connect();
   connectApp.use(api.middleware); // handles /api/*, falls through otherwise
