@@ -61,14 +61,16 @@ Code, Codex CLI, any text editor).
 
 ## Known / accepted advisories
 
-`npm audit` may show a handful of **moderate** advisories plus deprecation
-warnings (`inflight`, `glob@7`, `rimraf@2`, `boolean`, `minimatch`). These all
-live inside **electron-builder**'s dependency tree and only run during
-`npm run app:build` (desktop packaging) — never in `npm run dev`, never in the
-app, never shipped to users. Don't force overrides on them (glob/rimraf major
-bumps break the installer build). Electron itself also re-accrues advisories
-after each release; that's normal. Prod deps (chokidar, connect, serve-static,
-parse5, ws) are kept clean.
+A default `npm install` should be clean. The desktop-packaging tools (Electron +
+electron-builder) are **opt-in** — installed via `npm run app:setup`
+(`--no-save`), NOT listed in devDependencies — because they carry build-time-only
+advisories and deprecations (`inflight`, `glob@7`, `rimraf@2`, `boolean`,
+`minimatch`). Those only matter during `npm run app:build` (packaging) — never
+in `npm run dev`, never in the app, never shipped. Don't add Electron/
+electron-builder back to devDependencies, and don't force overrides on their
+transitives (glob/rimraf major bumps break the installer build). Electron also
+re-accrues advisories after each release; that's normal. Prod deps (chokidar,
+connect, serve-static, parse5, ws) are kept clean.
 
 ## Scope decisions
 

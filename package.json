@@ -14,6 +14,7 @@
     "dev": "vite",
     "build": "vite build",
     "electron": "npm run build && electron .",
+    "app:setup": "npm install --no-save electron@^45.2.3 electron-builder@^26.18.0",
     "app:build": "npm run build && electron-builder",
     "app:build:mac": "npm run build && electron-builder --mac",
     "app:build:win": "npm run build && electron-builder --win"
@@ -33,8 +34,6 @@
     "@codemirror/lang-html": "^6.4.9",
     "@codemirror/lang-javascript": "^6.2.2",
     "codemirror": "^6.0.1",
-    "electron": "^45.2.3",
-    "electron-builder": "^26.18.0",
     "vite": "^7.1.0"
   },
   "build": {

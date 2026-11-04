@@ -73,11 +73,23 @@ In this mode projects live in the `projects/` folder inside the repo.
 
 ### Building the desktop app yourself
 
+The desktop packaging tools (**Electron** + **electron-builder**) are **not**
+installed by default — this keeps a normal `npm install` / `npm audit` clean,
+since those tools carry a lot of build-time-only dependency noise. Install them
+on demand the first time you want to build:
+
 ```bash
 npm install
+npm run app:setup        # one-time: fetches electron + electron-builder (not saved to package.json)
 npm run app:build:mac    # build the macOS .dmg + .zip (run on a Mac)
 npm run app:build:win    # build the Windows installer (run on Windows)
 ```
+
+`app:setup` installs them with `--no-save`, so they stay out of `package.json`
+and off your everyday dependency tree. (Re-run it after a clean
+`rm -rf node_modules`.) Expect `npm audit` to report build-time-only advisories
+*while those tools are installed* — that's the electron-builder toolchain, not
+your app.
 
 Installers land in the `release/` (electron-builder `dist`) output folder.
 Build each platform's installer **on that platform** — cross-building (e.g. a
