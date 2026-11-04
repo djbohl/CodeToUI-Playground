@@ -23,3 +23,10 @@ npm-debug.log*
 *.swp
 .idea/
 .vscode/
+
+# Planning / personal notes — kept local, not in the public repo
+PLAN.md
+COLLABORATION.md
+
+# Wiki lives in its own repo (github.com/djbohl/CodeToUI-Playground.wiki.git)
+wiki/
