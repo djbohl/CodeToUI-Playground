@@ -100,6 +100,12 @@ resulting apps are unsigned; see the warning above.
   monitor); it stays live. Pop it back in anytime.
 - **Overview** — see all screens as thumbnails on one board; click one to jump
   to it.
+- **Link** — wire up navigation without code: click **Link**, click an element
+  in the preview, then pick the screen it should go to and a transition
+  (none/fade/slide). Linked elements get a green outline. Links are stored in
+  `links.json`, keyed to stable element ids so they survive HTML edits.
+- **Play** — click **Play** to run the prototype full-screen: clicking linked
+  elements navigates between screens, **← Back** steps back, and **Esc** exits.
 
 ## How a project is stored
 
