@@ -70,8 +70,10 @@ export function initColorPicker() {
   const modeSolidBtn = el("color-mode-solid");
   const modeGradientBtn = el("color-mode-gradient");
   const gradientEl = el("color-gradient");
-  const stopABtn = el("color-stop-a");
-  const stopBBtn = el("color-stop-b");
+  const gradTypeEl = el("color-grad-type");
+  const gradRepeatEl = el("color-grad-repeat");
+  const stopsEl = el("color-stops");
+  const addStopBtn = el("color-stop-add");
   const angleEl = el("color-angle");
   const gradPreviewEl = el("color-grad-preview");
   const copyHexBtn = el("color-copy-hex");
@@ -81,8 +83,12 @@ export function initColorPicker() {
 
   let hsv = { h: 335, s: 0.7, v: 1 }; // current editing color
   let mode = "solid";
-  let stops = { a: "#ff4d9d", b: "#38f9d7" };
-  let activeStop = "a";
+  // Gradient stops: each { hex, pos (0-100) }. At least two.
+  let gradStops = [
+    { hex: "#ff4d9d", pos: 0 },
+    { hex: "#38f9d7", pos: 100 },
+  ];
+  let activeStop = 0;
 
   function currentRgb() {
     return hsvToRgb(hsv.h, hsv.s, hsv.v);
@@ -91,8 +97,58 @@ export function initColorPicker() {
     const { r, g, b } = currentRgb();
     return rgbToHex(r, g, b);
   }
+
   function gradientValue() {
-    return `linear-gradient(${angleEl.value || 0}deg, ${stops.a}, ${stops.b})`;
+    const type = gradTypeEl.value; // linear | radial | conic
+    const repeat = gradRepeatEl.checked ? "repeating-" : "";
+    const angle = angleEl.value || 0;
+    const stopsStr = gradStops
+      .slice()
+      .sort((a, b) => a.pos - b.pos)
+      .map((s) => `${s.hex} ${s.pos}%`)
+      .join(", ");
+    let head = "";
+    if (type === "linear") head = `${angle}deg, `;
+    else if (type === "conic") head = `from ${angle}deg, `;
+    else head = "circle, "; // radial
+    return `${repeat}${type}-gradient(${head}${stopsStr})`;
+  }
+
+  // Build the stop chips (swatch + position + remove).
+  function renderStops() {
+    stopsEl.innerHTML = "";
+    gradStops.forEach((stop, idx) => {
+      const chip = document.createElement("div");
+      chip.className = "color-stop-chip" + (idx === activeStop ? " active" : "");
+
+      const sw = document.createElement("button");
+      sw.className = "color-stop-swatch";
+      sw.style.background = stop.hex;
+      sw.title = "Edit this stop";
+      sw.addEventListener("click", () => selectStop(idx));
+
+      const pos = document.createElement("input");
+      pos.className = "color-stop-pos";
+      pos.type = "number";
+      pos.min = "0";
+      pos.max = "100";
+      pos.value = String(stop.pos);
+      pos.addEventListener("input", () => {
+        stop.pos = Math.min(100, Math.max(0, parseInt(pos.value, 10) || 0));
+        gradPreviewEl.style.background = gradientValue();
+      });
+
+      const del = document.createElement("button");
+      del.className = "color-stop-del";
+      del.textContent = "×";
+      del.title = "Remove stop";
+      del.disabled = gradStops.length <= 2;
+      del.addEventListener("click", () => removeStop(idx));
+
+      chip.append(sw, pos, del);
+      stopsEl.appendChild(chip);
+    });
+    gradPreviewEl.style.background = gradientValue();
   }
 
   function sync() {
@@ -118,9 +174,9 @@ export function initColorPicker() {
     if (document.activeElement !== hexEl) hexEl.value = hex;
 
     if (mode === "gradient") {
-      stops[activeStop] = hex;
-      stopABtn.style.borderColor = stops.a;
-      stopBBtn.style.borderColor = stops.b;
+      gradStops[activeStop].hex = hex;
+      const chip = stopsEl.children[activeStop];
+      if (chip) chip.querySelector(".color-stop-swatch").style.background = hex;
       gradPreviewEl.style.background = gradientValue();
     }
   }
@@ -181,21 +237,49 @@ export function initColorPicker() {
     modeGradientBtn.classList.toggle("active", next === "gradient");
     gradientEl.hidden = next !== "gradient";
     copyGradBtn.hidden = next !== "gradient";
-    sync();
+    if (next === "gradient") {
+      renderStops();
+      selectStop(Math.min(activeStop, gradStops.length - 1));
+    } else {
+      sync();
+    }
   }
   modeSolidBtn.addEventListener("click", () => setMode("solid"));
   modeGradientBtn.addEventListener("click", () => setMode("gradient"));
 
-  function selectStop(which) {
-    activeStop = which;
-    stopABtn.classList.toggle("active", which === "a");
-    stopBBtn.classList.toggle("active", which === "b");
-    const rgb = hexToRgb(stops[which]);
+  function selectStop(idx) {
+    activeStop = idx;
+    [...stopsEl.children].forEach((c, i) => c.classList.toggle("active", i === idx));
+    const rgb = hexToRgb(gradStops[idx].hex);
     if (rgb) setRgb(rgb.r, rgb.g, rgb.b);
   }
-  stopABtn.addEventListener("click", () => selectStop("a"));
-  stopBBtn.addEventListener("click", () => selectStop("b"));
+
+  function addStop() {
+    // New stop at the midpoint, using the current color.
+    const sorted = gradStops.slice().sort((a, b) => a.pos - b.pos);
+    const pos = Math.round((sorted[sorted.length - 1].pos + sorted[0].pos) / 2);
+    gradStops.push({ hex: currentHex(), pos });
+    activeStop = gradStops.length - 1;
+    renderStops();
+    selectStop(activeStop);
+  }
+
+  function removeStop(idx) {
+    if (gradStops.length <= 2) return;
+    gradStops.splice(idx, 1);
+    if (activeStop >= gradStops.length) activeStop = gradStops.length - 1;
+    renderStops();
+    selectStop(activeStop);
+  }
+
+  addStopBtn.addEventListener("click", addStop);
   angleEl.addEventListener("input", () => {
+    gradPreviewEl.style.background = gradientValue();
+  });
+  gradTypeEl.addEventListener("change", () => {
+    gradPreviewEl.style.background = gradientValue();
+  });
+  gradRepeatEl.addEventListener("change", () => {
     gradPreviewEl.style.background = gradientValue();
   });
 
