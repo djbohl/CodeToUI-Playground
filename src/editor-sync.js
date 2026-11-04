@@ -9,27 +9,37 @@ const SAVE_DEBOUNCE_MS = 500;
  * conflict handling because losing keystrokes is the only truly bad outcome.
  */
 export class FileSync {
-  constructor({ view, saveFn, onConflict, onSaved }) {
+  constructor({ view, saveFn, onConflict, onSaved, onDirtyChange, shouldAutoSave }) {
     this.view = view;
     this.saveFn = saveFn;
     this.onConflict = onConflict;
     this.onSaved = onSaved;
+    this.onDirtyChange = onDirtyChange;
+    this.shouldAutoSave = shouldAutoSave || (() => true);
     this.dirty = false;
     this.saveTimer = null;
     this.pendingExternal = null;
   }
 
+  _setDirty(value) {
+    this.dirty = value;
+    this.onDirtyChange?.(value);
+  }
+
   /** Call when the user types in the editor. */
   markDirtyAndScheduleSave() {
-    this.dirty = true;
+    this._setDirty(true);
     if (this.saveTimer) clearTimeout(this.saveTimer);
-    this.saveTimer = setTimeout(() => this._save(), SAVE_DEBOUNCE_MS);
+    // With auto-save off, the buffer just stays dirty until an explicit save.
+    if (this.shouldAutoSave()) {
+      this.saveTimer = setTimeout(() => this._save(), SAVE_DEBOUNCE_MS);
+    }
   }
 
   async _save() {
     const content = this.view.state.doc.toString();
     const result = await this.saveFn(content);
-    this.dirty = false;
+    this._setDirty(false);
     // The server may have rewritten the content (e.g. injecting stable
     // element ids) -- adopt that back into the buffer so it matches disk.
     if (result?.content && result.content !== content) {
@@ -63,7 +73,7 @@ export class FileSync {
     if (this.pendingExternal == null) return;
     this._replaceContent(this.pendingExternal);
     this.pendingExternal = null;
-    this.dirty = false;
+    this._setDirty(false);
   }
 
   /** User chose to keep their local edits; external change is dropped. */
