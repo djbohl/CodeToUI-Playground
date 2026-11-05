@@ -6,7 +6,7 @@ import { readScreenFiles, readGlobalCss } from "./render-pipeline.js";
 import { reconcileScreens, createScreen, deleteScreen, setScreenFramework } from "./screens.js";
 import { assignStableIds } from "./stable-ids.js";
 import { readLinks, writeLinks } from "./links.js";
-import { screenshotScreens, pdfScreens, closeBrowser } from "./render-export.js";
+import { screenshotScreens, pdfScreens, gifScreens, closeBrowser } from "./render-export.js";
 import {
   listProjects,
   scaffoldProject,
@@ -216,6 +216,23 @@ export function createProtoApi({ projectsRoot, wsPort, initialProject }) {
           res.end(Buffer.from(pdf));
         } catch (e) {
           if (e.code === "NO_PUPPETEER") { res.statusCode = 501; res.end(e.message); return; }
+          throw e;
+        }
+        return;
+      }
+
+      if (req.url === "/api/export/gif" && req.method === "POST") {
+        const body = await readJsonBody(req);
+        try {
+          const gif = await gifScreens({
+            projectDir: activeDir,
+            screens: body.screens || [],
+            deviceWidth: body.deviceWidth || 1280,
+          });
+          res.setHeader("Content-Type", "image/gif");
+          res.end(Buffer.from(gif));
+        } catch (e) {
+          if (e.code === "NO_PUPPETEER" || e.code === "NO_GIFDEPS") { res.statusCode = 501; res.end(e.message); return; }
           throw e;
         }
         return;

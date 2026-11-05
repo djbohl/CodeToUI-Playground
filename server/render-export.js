@@ -152,3 +152,53 @@ export async function pdfScreens({ projectDir, screens, deviceWidth = 1280, mock
     await page.close();
   }
 }
+
+/**
+ * Animated GIF walkthrough: one frame per screen (held `delay` ms), looping.
+ * Renders screenshots with Puppeteer, then encodes a GIF with pure-JS libs
+ * (gifenc + pngjs) — no ffmpeg. All frames share one canvas size (the common
+ * width and the tallest screen); shorter screens are padded with white.
+ */
+export async function gifScreens({ projectDir, screens, deviceWidth = 1280, delay = 1000 }) {
+  let GIFEncoder, quantize, applyPalette, PNG;
+  try {
+    ({ GIFEncoder, quantize, applyPalette } = await import("gifenc"));
+    ({ PNG } = await import("pngjs"));
+  } catch {
+    const e = new Error("GIF export needs extra packages. Run: npm install gifenc pngjs");
+    e.code = "NO_GIFDEPS";
+    throw e;
+  }
+
+  const browser = await getBrowser();
+  const width = Math.min(deviceWidth || 1280, 480); // keep GIFs a sane size
+  const pngs = [];
+  let maxH = 1;
+  for (const name of screens) {
+    const page = await browser.newPage();
+    try {
+      await page.setViewport({ width, height: 800, deviceScaleFactor: 1 });
+      await page.setContent(await screenHtml(projectDir, name), { waitUntil: "load" });
+      const buf = Buffer.from(await page.screenshot({ fullPage: true, type: "png" }));
+      const png = PNG.sync.read(buf);
+      pngs.push(png);
+      if (png.height > maxH) maxH = png.height;
+    } finally {
+      await page.close();
+    }
+  }
+
+  const gif = GIFEncoder();
+  pngs.forEach((png, i) => {
+    const canvas = new Uint8Array(width * maxH * 4).fill(255); // white background
+    const rowBytes = Math.min(png.width, width) * 4;
+    for (let y = 0; y < png.height && y < maxH; y++) {
+      canvas.set(png.data.subarray(y * png.width * 4, y * png.width * 4 + rowBytes), y * width * 4);
+    }
+    const palette = quantize(canvas, 256);
+    const index = applyPalette(canvas, palette);
+    gif.writeFrame(index, width, maxH, { palette, delay, repeat: i === 0 ? 0 : undefined });
+  });
+  gif.finish();
+  return Buffer.from(gif.bytes());
+}

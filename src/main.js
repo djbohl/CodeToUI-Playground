@@ -98,6 +98,7 @@ const exportImagesEl = document.getElementById("export-images");
 const exportMockupEl = document.getElementById("export-mockup");
 const exportPdfSizeEl = document.getElementById("export-pdf-size");
 const exportPdfEl = document.getElementById("export-pdf");
+const exportGifEl = document.getElementById("export-gif");
 const exportStatusEl = document.getElementById("export-status");
 const insertToggleEl = document.getElementById("insert-toggle");
 const insertMenuEl = document.getElementById("insert-menu");
@@ -1341,6 +1342,25 @@ exportPdfEl.addEventListener("click", async () => {
     title: currentProjectEl.textContent,
   });
   exportStatus(ok ? "Opened print view — choose 'Save as PDF'." : "Popup blocked — allow popups and retry.");
+});
+
+exportGifEl.addEventListener("click", async () => {
+  const names = selectedPages();
+  if (!names.length) return exportStatus("Pick at least one page.");
+  await saveAll();
+  exportStatus("Rendering GIF…");
+  try {
+    const res = await fetch("/api/export/gif", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ screens: names, deviceWidth: currentDeviceWidth || 1280 }),
+    });
+    if (!res.ok) return exportStatus(await res.text());
+    downloadBlob(await res.blob(), `${projectSlug()}-walkthrough.gif`);
+    exportStatus("GIF exported ✓" + reactSkipNote(names));
+  } catch (err) {
+    exportStatus(`GIF export failed: ${err.message}`);
+  }
 });
 
 // --- Insert element menu ----------------------------------------------------
