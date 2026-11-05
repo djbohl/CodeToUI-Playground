@@ -152,12 +152,14 @@ resulting apps are unsigned; see the warning above.
   include, then export:
   - **No extra tools:** a self-contained **Prototype** (`.html`, plays offline),
     or the **Code** (`.zip` of HTML/CSS/JS + `links.json`).
-  - **Rendered** (needs `npm install puppeteer`, optional): **Images** (`.png`
-    per screen, optionally wrapped in a device **mockup** frame — light/dark
-    desktop or phone) and a crisp **PDF** (one screen per page). Without
-    Puppeteer, PDF falls back to the browser's Save-as-PDF.
-  - **Coming:** an in-app **GIF** walkthrough (no extra tools); real **video**
-    export is planned for a separate **CodeToPrototype** companion tool.
+  - **Rendered** (needs `npm install puppeteer`, optional — GIF also needs
+    `gifenc pngjs`): **Images** (`.png` per screen, optionally wrapped in a
+    device **mockup** frame — light/dark desktop or phone), a crisp **PDF**
+    (fit-to-A4 or tight to each screen), and an animated **GIF** walkthrough
+    that loops through the pages. Without Puppeteer, PDF falls back to the
+    browser's Save-as-PDF.
+  - **Coming:** real **video** export is planned for a separate
+    **CodeToPrototype** companion tool.
 - **Pixel pet** — hatch a companion at the bottom of the sidebar; it bobs
   around, reacts when you pet it, and drops quips, app tips, and context-aware
   nudges. You can keep **up to two** pets (they stack), and you can **rehome** a
