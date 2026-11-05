@@ -290,7 +290,7 @@ async function reactRuntime() {
   return _reactRuntime;
 }
 
-function composeReactSrcdoc(jsxCode, cssContent, globalCssContent, rt) {
+function composeReactSrcdoc(jsxCode, cssContent, globalCssContent, rt, extraScript = PREVIEW_BRIDGE_SCRIPT) {
   const userCode = String(jsxCode).replace(/<\/script/gi, "<\\/script");
   return `<!doctype html>
 <html><head><meta charset="utf-8" />
@@ -313,7 +313,7 @@ ${userCode}
   }
 })();
 <\/script>
-<script>${PREVIEW_BRIDGE_SCRIPT}<\/script>
+<script>${extraScript}<\/script>
 </body></html>`;
 }
 
@@ -916,10 +916,18 @@ function playModeScript(linkMap, flash) {
 }
 
 async function composePlayScreen(name) {
-  const { html: htmlContent, css: cssContent, js: jsContent } = await fetchJson(`/api/screen/${name}`);
+  const { html: htmlContent, css: cssContent, js: jsContent, jsx: jsxContent } =
+    await fetchJson(`/api/screen/${name}`);
   const globalCssContent = globalCssView.state.doc.toString();
+  const navScript = playModeScript(screenLinkMap(name), playFlash);
+  if (projectFrameworks[name] === "react") {
+    // React screens can't author links by click, but data-goto still works and
+    // nav INTO them renders. Inject the play nav script after the mount.
+    const rt = await reactRuntime();
+    return composeReactSrcdoc(jsxContent, cssContent, globalCssContent, rt, navScript);
+  }
   return composeSrcdoc(htmlContent, cssContent, globalCssContent, {
-    script: playModeScript(screenLinkMap(name), playFlash),
+    script: navScript,
     js: jsContent,
   });
 }
@@ -1195,13 +1203,6 @@ async function fetchScreensContent(names) {
   return out;
 }
 
-// React screens don't render in the prototype/image/PDF exports yet (those use
-// the HTML pipeline). Returns a status suffix noting any that were skipped.
-function reactSkipNote(names) {
-  const react = names.filter((n) => projectFrameworks[n] === "react");
-  return react.length ? ` (React screens skipped: ${react.join(", ")})` : "";
-}
-
 function renderExportPages() {
   exportPagesEl.innerHTML = "";
   for (const s of currentScreens) {
@@ -1241,15 +1242,18 @@ exportPrototypeEl.addEventListener("click", async () => {
   await saveAll();
   const screens = await fetchScreensContent(names);
   const start = names.includes(startScreenName) ? startScreenName : names[0];
+  const needsReact = screens.some((s) => s.framework === "react");
+  const rt = needsReact ? await reactRuntime() : null;
   const html = buildStandaloneHtml({
     screens,
     globalCss: globalCssView.state.doc.toString(),
     links: linksData.links.filter((l) => names.includes(l.screen)),
     startScreen: start,
     title: currentProjectEl.textContent,
+    reactRuntime: rt,
   });
   downloadBlob(new Blob([html], { type: "text/html" }), `${projectSlug()}-prototype.html`);
-  exportStatus("Prototype exported ✓" + reactSkipNote(names));
+  exportStatus("Prototype exported ✓");
 });
 
 exportCodeEl.addEventListener("click", async () => {
@@ -1300,7 +1304,7 @@ exportImagesEl.addEventListener("click", async () => {
       const zip = buildZip(files.map((f) => ({ path: `${f.name}.png`, content: b64ToBytes(f.b64) })));
       downloadBlob(new Blob([zip], { type: "application/zip" }), `${projectSlug()}-images.zip`);
     }
-    exportStatus("Images exported ✓" + reactSkipNote(names));
+    exportStatus("Images exported ✓");
   } catch (err) {
     exportStatus(`Image export failed: ${err.message}`);
   }
@@ -1330,7 +1334,7 @@ exportPdfEl.addEventListener("click", async () => {
   }
   if (res.ok) {
     downloadBlob(await res.blob(), `${projectSlug()}.pdf`);
-    exportStatus("PDF exported ✓" + reactSkipNote(names));
+    exportStatus("PDF exported ✓");
     return;
   }
   // non-OK (e.g. 501 = no Puppeteer): use the print fallback.
@@ -1357,7 +1361,7 @@ exportGifEl.addEventListener("click", async () => {
     });
     if (!res.ok) return exportStatus(await res.text());
     downloadBlob(await res.blob(), `${projectSlug()}-walkthrough.gif`);
-    exportStatus("GIF exported ✓" + reactSkipNote(names));
+    exportStatus("GIF exported ✓");
   } catch (err) {
     exportStatus(`GIF export failed: ${err.message}`);
   }

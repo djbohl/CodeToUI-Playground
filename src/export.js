@@ -36,10 +36,17 @@ const STANDALONE_PLAYER = `
     LINKS.forEach(function(l){ if(l.screen===name){ m[l.elementId]={target:l.target,mode:l.mode||'navigate',transition:l.transition||'instant'}; } });
     return m;
   }
+  function esc(x){ return String(x||'').replace(/<\\/script/gi,'<\\\\/script'); }
   function srcdoc(name){
     var s=SCREENS[name]||{html:'',css:'',js:''};
-    var jsTag = s.js ? '<scr'+'ipt>'+s.js+'</scr'+'ipt>' : '';
-    return '<!doctype html><html><head><meta charset="utf-8"><style>'+GLOBAL+'</style><style>'+s.css+'</style></head><body>'+s.html+jsTag+'</body></html>';
+    if(s.framework==='react' && DATA.rt){
+      return '<!doctype html><html><head><meta charset="utf-8"><style>'+GLOBAL+'</style><style>'+(s.css||'')+'</style></head><body><div id="root"></div>'
+        +'<scr'+'ipt>'+esc(DATA.rt.react)+'</scr'+'ipt><scr'+'ipt>'+esc(DATA.rt.reactDom)+'</scr'+'ipt><scr'+'ipt>'+esc(DATA.rt.babel)+'</scr'+'ipt>'
+        +'<scr'+'ipt type="text/babel" data-presets="react">'+esc(s.jsx)+';(function(){var r=document.getElementById("root");try{if(typeof App!=="undefined")ReactDOM.createRoot(r).render(React.createElement(App));}catch(e){r.textContent=String(e);}})();</scr'+'ipt>'
+        +'</body></html>';
+    }
+    var jsTag = s.js ? '<scr'+'ipt>'+esc(s.js)+'</scr'+'ipt>' : '';
+    return '<!doctype html><html><head><meta charset="utf-8"><style>'+GLOBAL+'</style><style>'+(s.css||'')+'</style></head><body>'+s.html+jsTag+'</body></html>';
   }
   function startStyle(tr){
     if(tr==='dissolve') return {opacity:'0',transform:'none'};
@@ -100,10 +107,24 @@ const STANDALONE_PLAYER = `
 })();
 `;
 
-export function buildStandaloneHtml({ screens, globalCss, links, startScreen, title = "Prototype" }) {
+export function buildStandaloneHtml({ screens, globalCss, links, startScreen, title = "Prototype", reactRuntime = null }) {
   const screenMap = {};
-  for (const s of screens) screenMap[s.name] = { html: s.html, css: s.css, js: s.js || "" };
-  const data = { screens: screenMap, global: globalCss || "", links: links || [], start: startScreen };
+  for (const s of screens) {
+    screenMap[s.name] = {
+      html: s.html,
+      css: s.css,
+      js: s.js || "",
+      jsx: s.jsx || "",
+      framework: s.framework === "react" ? "react" : "vanilla",
+    };
+  }
+  const data = {
+    screens: screenMap,
+    global: globalCss || "",
+    links: links || [],
+    start: startScreen,
+    rt: reactRuntime, // { react, reactDom, babel } when any screen is React
+  };
   // Prevent any "</script>" inside embedded HTML/CSS from closing our script tag.
   const dataJson = JSON.stringify(data).replace(/<\//g, "<\\/");
   return `<!doctype html>

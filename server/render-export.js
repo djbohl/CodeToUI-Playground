@@ -3,8 +3,37 @@
 // without it; the endpoints report a friendly "not installed" error instead.
 
 import { readScreenFiles, readGlobalCss } from "./render-pipeline.js";
+import { readFile } from "node:fs/promises";
+import { createRequire } from "node:module";
+import path from "node:path";
+
+const require = createRequire(import.meta.url);
 
 let _browser = null;
+
+// React/ReactDOM/Babel UMD source read from node_modules (cached), so headless
+// renders can compile + render React screens the same way the live preview does.
+let _rtFiles = null;
+async function reactRuntimeFiles() {
+  if (_rtFiles) return _rtFiles;
+  const read = (pkgJson, rel) => readFile(path.join(path.dirname(require.resolve(pkgJson)), rel), "utf8");
+  const [react, reactDom, babel] = await Promise.all([
+    read("react/package.json", "umd/react.development.js"),
+    read("react-dom/package.json", "umd/react-dom.development.js"),
+    read("@babel/standalone/package.json", "babel.min.js"),
+  ]);
+  _rtFiles = { react, reactDom, babel };
+  return _rtFiles;
+}
+
+async function screenFramework(projectDir, name) {
+  try {
+    const cfg = JSON.parse(await readFile(path.join(projectDir, "proto.config.json"), "utf8"));
+    return cfg.frameworks && cfg.frameworks[name] === "react" ? "react" : "vanilla";
+  } catch {
+    return "vanilla";
+  }
+}
 
 async function getBrowser() {
   let puppeteer;
@@ -28,14 +57,40 @@ export async function closeBrowser() {
   }
 }
 
+// Returns { content, framework } for a screen. React screens inline the React
+// runtime + Babel and render the `App` component (mirrors the live preview).
 async function screenHtml(projectDir, name) {
-  const [{ html, css, js }, globalCss] = await Promise.all([
+  const [{ html, css, js, jsx }, globalCss, framework] = await Promise.all([
     readScreenFiles(projectDir, name),
     readGlobalCss(projectDir),
+    screenFramework(projectDir, name),
   ]);
+
+  if (framework === "react") {
+    const rt = await reactRuntimeFiles();
+    const userCode = String(jsx).replace(/<\/script/gi, "<\\/script");
+    const content = `<!doctype html><html><head><meta charset="utf-8">
+<style>${globalCss}</style><style>${css}</style></head><body>
+<div id="root"></div>
+<script>${rt.react}<\/script><script>${rt.reactDom}<\/script><script>${rt.babel}<\/script>
+<script type="text/babel" data-presets="react">
+${userCode}
+;(function(){ var r=document.getElementById('root'); try{ if(typeof App!=='undefined') ReactDOM.createRoot(r).render(React.createElement(App)); }catch(e){ r.textContent=String(e); } })();
+<\/script></body></html>`;
+    return { content, framework };
+  }
+
   const jsTag = js ? `<script>${String(js).replace(/<\/script/gi, "<\\/script")}<\/script>` : "";
-  return `<!doctype html><html><head><meta charset="utf-8">
+  const content = `<!doctype html><html><head><meta charset="utf-8">
 <style>${globalCss}</style><style>${css}</style></head><body>${html}${jsTag}</body></html>`;
+  return { content, framework };
+}
+
+// Give a React screen a moment to compile (Babel) + mount before capturing.
+async function settle(page, framework) {
+  if (framework === "react") {
+    await page.waitForSelector("#root *", { timeout: 3000 }).catch(() => {});
+  }
 }
 
 // A frame wrapper around a screenshot data-URI. Returns the HTML to re-render
@@ -81,7 +136,9 @@ export async function screenshotScreens({ projectDir, screens, deviceWidth = 128
     const page = await browser.newPage();
     try {
       await page.setViewport({ width: renderWidth, height: 800, deviceScaleFactor: 2 });
-      await page.setContent(await screenHtml(projectDir, name), { waitUntil: "load" });
+      const { content, framework } = await screenHtml(projectDir, name);
+      await page.setContent(content, { waitUntil: "load" });
+      await settle(page, framework);
       // Puppeteer v23+ returns a Uint8Array; wrap in Buffer for real base64.
       let buf = Buffer.from(await page.screenshot({ fullPage: true, type: "png" }));
       if (mockup && mockup !== "none") {
@@ -178,7 +235,9 @@ export async function gifScreens({ projectDir, screens, deviceWidth = 1280, dela
     const page = await browser.newPage();
     try {
       await page.setViewport({ width, height: 800, deviceScaleFactor: 1 });
-      await page.setContent(await screenHtml(projectDir, name), { waitUntil: "load" });
+      const { content, framework } = await screenHtml(projectDir, name);
+      await page.setContent(content, { waitUntil: "load" });
+      await settle(page, framework);
       const buf = Buffer.from(await page.screenshot({ fullPage: true, type: "png" }));
       const png = PNG.sync.read(buf);
       pngs.push(png);
