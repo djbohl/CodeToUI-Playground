@@ -82,6 +82,109 @@
   --cm-const: #b76b01;
 }
 
+:root[data-theme="spooky"] {
+  --bg: #0b0b0f;
+  --surface: #14141b;
+  --surface-2: #1d1d27;
+  --canvas-bg: #070709;
+  --grid: rgba(190, 180, 220, 0.06);
+  --border: #2b2b38;
+  --border-strong: #514a6b;
+  --text: #ecebf2;
+  --muted: #9a94ad;
+  --accent: #b9a7e6;
+  --accent-2: #d8b26a;
+  --accent-ink: #0b0b0f;
+  --ok: #9ad1a0;
+  --danger: #e68aa0;
+  --warn-bg: #3a2d10;
+  --warn-text: #ffd23f;
+  --shadow: rgba(0, 0, 0, 0.72);
+
+  /* Code editor (CodeMirror) — spooky */
+  --cm-bg: #14141b;
+  --cm-text: #ecebf2;
+  --cm-gutter-bg: #14141b;
+  --cm-gutter-text: #6a6478;
+  --cm-cursor: #d8b26a;
+  --cm-selection: #2b2b38;
+  --cm-active-line: rgba(255, 255, 255, 0.04);
+  --cm-keyword: #b9a7e6;
+  --cm-string: #9ad1a0;
+  --cm-comment: #6a6478;
+  --cm-number: #d8b26a;
+  --cm-tag: #e68aa0;
+  --cm-attr: #d8b26a;
+  --cm-prop: #b9a7e6;
+  --cm-fn: #b9a7e6;
+  --cm-type: #d8b26a;
+  --cm-const: #d8b26a;
+}
+
+/* Spooky, but lit by day: greys instead of near-black, same two accents. */
+:root[data-theme="spooky-light"] {
+  --bg: #c6c4ce;
+  --surface: #d3d1db;
+  --surface-2: #dedce6;
+  --canvas-bg: #bcbac5;
+  --grid: rgba(60, 50, 90, 0.08);
+  --border: #8e8ba0;
+  --border-strong: #6c6880;
+  --text: #2a2733;
+  --muted: #5c5870;
+  --accent: #6f52a8;
+  --accent-2: #9c6a1f;
+  --accent-ink: #f5f3fa;
+  --ok: #2f7a4a;
+  --danger: #a13350;
+  --warn-bg: #f0dca0;
+  --warn-text: #5c4300;
+  --shadow: rgba(40, 30, 55, 0.3);
+
+  /* Code editor (CodeMirror) — spooky light */
+  --cm-bg: #d3d1db;
+  --cm-text: #2a2733;
+  --cm-gutter-bg: #c9c7d1;
+  --cm-gutter-text: #7b7790;
+  --cm-cursor: #9c6a1f;
+  --cm-selection: #c0bdcf;
+  --cm-active-line: rgba(0, 0, 0, 0.04);
+  --cm-keyword: #6f52a8;
+  --cm-string: #2f7a4a;
+  --cm-comment: #7b7790;
+  --cm-number: #9c6a1f;
+  --cm-tag: #a13350;
+  --cm-attr: #9c6a1f;
+  --cm-prop: #6f52a8;
+  --cm-fn: #6f52a8;
+  --cm-type: #9c6a1f;
+  --cm-const: #9c6a1f;
+}
+
+/* candlelit vignette on the preview canvas + faint accent glow */
+:root[data-theme="spooky"] .preview-pane::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: radial-gradient(120% 110% at 50% 46%, transparent 48%, rgba(0, 0, 0, .55) 100%);
+}
+:root[data-theme="spooky-light"] .preview-pane::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: radial-gradient(120% 110% at 50% 46%, transparent 48%, rgba(60, 50, 80, .25) 100%);
+}
+:root[data-theme="spooky"] .sidebar-title {
+  text-shadow: 0 0 9px rgba(216, 178, 106, .4);
+}
+:root[data-theme="spooky-light"] .sidebar-title {
+  text-shadow: 0 0 9px rgba(156, 106, 31, .35);
+}
+
 * { box-sizing: border-box; }
 
 html, body, #app {

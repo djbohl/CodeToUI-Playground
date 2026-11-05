@@ -40,6 +40,10 @@
         <button class="topbar-btn" id="export-toggle">Export</button>
         <button class="topbar-btn" id="color-toggle">Colors</button>
         <button class="topbar-btn" id="theme-toggle" title="Toggle light/dark">☾ Dark</button>
+        <select class="topbar-btn" id="theme-select" title="Theme">
+          <option value="none">Cozy Pixel</option>
+          <option value="spooky">🌙 Spooky</option>
+        </select>
       </header>
       <main class="layout" id="layout">
         <section class="editor-pane">
@@ -190,9 +194,9 @@
       </div>
 
       <div class="export-section">
-        <div class="export-label">Coming soon</div>
+        <div class="export-label">Companion tools</div>
         <div class="export-grid">
-          <button class="export-btn" disabled><span class="export-btn-title">Video</span><span class="export-btn-sub">in the CodeToPrototype companion tool</span></button>
+          <button class="export-btn" id="export-video"><span class="export-btn-title">Video</span><span class="export-btn-sub">Open this project in CodeToUI Motion</span></button>
         </div>
       </div>
 

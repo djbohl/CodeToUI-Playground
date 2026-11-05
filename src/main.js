@@ -81,6 +81,7 @@ const playBackEl = document.getElementById("play-back");
 const playFlashEl = document.getElementById("play-flash");
 const playExitEl = document.getElementById("play-exit");
 const themeToggleEl = document.getElementById("theme-toggle");
+const themeSelectEl = document.getElementById("theme-select");
 const saveBtnEl = document.getElementById("save-btn");
 const autosaveToggleEl = document.getElementById("autosave-toggle");
 const newScreenNameEl = document.getElementById("new-screen-name");
@@ -169,22 +170,74 @@ window.addEventListener("keydown", (e) => {
 });
 applyAutosaveLabel();
 
-// --- Theme (light/dark) -----------------------------------------------------
-const THEME_KEY = "codetoui-theme";
+// --- Theme: base (dark/light) + an optional extra theme (e.g. spooky) -------
+const THEME_KEY = "codetoui-theme"; // base: "dark" | "light"
+const EXTRA_THEME_KEY = "codetoui-extra-theme"; // "none" | "spooky"
+const THEME_LABELS = { dark: "☾ Dark", light: "☀ Light" };
 
-function applyTheme(theme) {
-  document.documentElement.setAttribute("data-theme", theme);
-  themeToggleEl.textContent = theme === "light" ? "☀ Light" : "☾ Dark";
+function makeCornerWeb(size, anchor, strokeColor) {
+  const O = anchor === "br" ? [size, size] : [0, 0];
+  const s = anchor === "br" ? -1 : 1;
+  const angs = [6, 20, 36, 54, 72, 84].map((d) => (d * Math.PI) / 180);
+  const pt = (a, r) => [(O[0] + s * Math.cos(a) * r).toFixed(1), (O[1] + s * Math.sin(a) * r).toFixed(1)];
+  let d = "";
+  for (const a of angs) d += `M${O[0]} ${O[1]}L${pt(a, size).join(" ")}`;
+  for (const f of [0.22, 0.44, 0.66, 0.88]) {
+    const r = size * f;
+    for (let i = 0; i < angs.length - 1; i++) {
+      const p1 = pt(angs[i], r),
+        p2 = pt(angs[i + 1], r);
+      const mx = (+p1[0] + +p2[0]) / 2,
+        my = (+p1[1] + +p2[1]) / 2;
+      const cx = (O[0] + (mx - O[0]) * 0.8).toFixed(1),
+        cy = (O[1] + (my - O[1]) * 0.8).toFixed(1);
+      d += `M${p1.join(" ")}Q${cx} ${cy} ${p2.join(" ")}`;
+    }
+  }
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='0 0 ${size} ${size}'><path d='${d}' fill='none' stroke='${strokeColor}' stroke-width='1'/></svg>`;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+}
+
+let baseTheme = localStorage.getItem(THEME_KEY) || "dark";
+let extraTheme = localStorage.getItem(EXTRA_THEME_KEY) || "none";
+
+function applyTheme() {
+  const effective =
+    extraTheme === "spooky" ? (baseTheme === "light" ? "spooky-light" : "spooky") : baseTheme;
+  document.documentElement.setAttribute("data-theme", effective);
+  themeToggleEl.textContent = THEME_LABELS[baseTheme] || THEME_LABELS.dark;
+  themeSelectEl.value = extraTheme;
+  const previewPane = document.querySelector(".preview-pane");
+  if (previewPane) {
+    if (effective === "spooky" || effective === "spooky-light") {
+      const stroke = effective === "spooky-light" ? "rgba(90,70,120,0.28)" : "rgba(185,167,230,0.22)";
+      previewPane.style.backgroundImage = `${makeCornerWeb(320, "tl", stroke)}, ${makeCornerWeb(260, "br", stroke)}`;
+      previewPane.style.backgroundRepeat = "no-repeat, no-repeat";
+      previewPane.style.backgroundPosition = "top left, bottom right";
+      previewPane.style.backgroundSize = "auto, auto";
+    } else {
+      previewPane.style.backgroundImage = "";
+      previewPane.style.backgroundRepeat = "";
+      previewPane.style.backgroundPosition = "";
+      previewPane.style.backgroundSize = "";
+    }
+  }
+  window.dispatchEvent(new CustomEvent("codetoui-theme", { detail: effective }));
 }
 
 themeToggleEl.addEventListener("click", () => {
-  const next =
-    document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
-  localStorage.setItem(THEME_KEY, next);
-  applyTheme(next);
+  baseTheme = baseTheme === "light" ? "dark" : "light";
+  localStorage.setItem(THEME_KEY, baseTheme);
+  applyTheme();
 });
 
-applyTheme(localStorage.getItem(THEME_KEY) || "dark");
+themeSelectEl.addEventListener("change", () => {
+  extraTheme = themeSelectEl.value;
+  localStorage.setItem(EXTRA_THEME_KEY, extraTheme);
+  applyTheme();
+});
+
+applyTheme();
 let htmlView = null;
 let cssView = null;
 let jsView = null;
@@ -1346,6 +1399,17 @@ exportPdfEl.addEventListener("click", async () => {
     title: currentProjectEl.textContent,
   });
   exportStatus(ok ? "Opened print view — choose 'Save as PDF'." : "Popup blocked — allow popups and retry.");
+});
+
+const exportVideoEl = document.getElementById("export-video");
+exportVideoEl?.addEventListener("click", () => {
+  const project = currentProjectEl.textContent;
+  const pet = encodeURIComponent(localStorage.getItem("codetoui-pet") || "");
+  const url =
+    "http://localhost:5900/?project=" +
+    encodeURIComponent(project) +
+    (pet ? "&pet=" + pet : "");
+  window.open(url, "_blank");
 });
 
 exportGifEl.addEventListener("click", async () => {

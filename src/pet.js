@@ -10,6 +10,7 @@
 // (currently "coming soon").
 
 const STORE_KEY = "codetoui-pet";
+const STORE_KEY_SPOOKY = "codetoui-pet-spooky";
 const MAX_PETS = 2;
 
 const PETS = [
@@ -22,6 +23,20 @@ const PETS = [
   { emoji: "🐲", kind: "Draggo" },
   { emoji: "🤖", kind: "Botling" },
 ];
+
+const SPOOKY_PETS = [
+  { emoji: "👻", kind: "Spirit" },
+  { emoji: "🌙", kind: "Luna" },
+  { emoji: "🦇", kind: "Echo" },
+  { emoji: "🐈‍⬛", kind: "Shadow" },
+  { emoji: "🔮", kind: "Oracle" },
+  { emoji: "🕯️", kind: "Ember" },
+  { emoji: "🦉", kind: "Hoot" },
+  { emoji: "✨", kind: "Nyx" },
+];
+
+const activePets = () =>
+  (document.documentElement.getAttribute("data-theme") || "").startsWith("spooky") ? SPOOKY_PETS : PETS;
 
 const NAMES = [
   "Pixel", "Boop", "Nibble", "Zap", "Waffles", "Mochi",
@@ -47,7 +62,7 @@ const TIPS = [
   "Tip: Hit Play to click through your prototype.",
   "Tip: Ctrl+scroll or pinch to zoom the preview.",
   "Tip: In Link mode, click an element to wire up navigation.",
-  "Tip: Toggle ☾/☀ for light and dark.",
+  "Tip: Click the theme button to cycle dark, light, and spooky.",
   "Tip: Pop the preview out onto a second monitor.",
   "Tip: Open → Overlay makes a link pop up as a modal.",
   "Tip: Link targets can be ← Back or ⌂ Home.",
@@ -63,14 +78,18 @@ export function initPet({ getContext } = {}) {
   const dock = document.getElementById("pet-dock");
   if (!dock) return { react() {} };
 
-  let pets = load(); // array of { i, name }
+  const isSpooky = () =>
+    (document.documentElement.getAttribute("data-theme") || "").startsWith("spooky");
+  const storeKey = () => (isSpooky() ? STORE_KEY_SPOOKY : STORE_KEY);
+
+  let pets = load(); // array of { i, name }, scoped to the active theme's roster
   const units = []; // parallel to pets: { bubbleEl, spriteEl, captionEl }
   let bubbleTimers = [];
   let chatterTimer = null;
 
   function load() {
     try {
-      const raw = JSON.parse(localStorage.getItem(STORE_KEY) || "null");
+      const raw = JSON.parse(localStorage.getItem(storeKey()) || "null");
       if (Array.isArray(raw)) return raw.slice(0, MAX_PETS);
       if (raw && typeof raw.i === "number") return [raw]; // migrate old single-pet
     } catch {
@@ -79,7 +98,7 @@ export function initPet({ getContext } = {}) {
     return [];
   }
   function save() {
-    localStorage.setItem(STORE_KEY, JSON.stringify(pets));
+    localStorage.setItem(storeKey(), JSON.stringify(pets));
   }
 
   function speak(idx, text) {
@@ -148,7 +167,7 @@ export function initPet({ getContext } = {}) {
   }
 
   function renderPetUnit(idx) {
-    const pet = PETS[pets[idx].i] || PETS[0];
+    const pet = activePets()[pets[idx].i] || activePets()[0];
     const unit = document.createElement("div");
     unit.className = "pet";
 
@@ -195,7 +214,7 @@ export function initPet({ getContext } = {}) {
     egg.className = "pet-sprite egg";
     egg.textContent = "🥚";
     egg.title = "Hatch an egg";
-    egg.addEventListener("click", () => hatchPet(Math.floor(Math.random() * PETS.length)));
+    egg.addEventListener("click", () => hatchPet(Math.floor(Math.random() * activePets().length)));
     stage.appendChild(egg);
 
     const caption = document.createElement("div");
@@ -208,7 +227,7 @@ export function initPet({ getContext } = {}) {
     eggBtn.className = "topbar-btn";
     eggBtn.textContent = "Hatch egg";
     eggBtn.title = "Hatch a random surprise";
-    eggBtn.addEventListener("click", () => hatchPet(Math.floor(Math.random() * PETS.length)));
+    eggBtn.addEventListener("click", () => hatchPet(Math.floor(Math.random() * activePets().length)));
     const pixelBtn = document.createElement("button");
     pixelBtn.className = "topbar-btn";
     pixelBtn.textContent = "Pick pet";
@@ -218,7 +237,7 @@ export function initPet({ getContext } = {}) {
     const picker = document.createElement("div");
     picker.className = "pet-picker";
     picker.hidden = true;
-    PETS.forEach((pet, i) => {
+    activePets().forEach((pet, i) => {
       const b = document.createElement("button");
       b.className = "pet-pick";
       b.textContent = pet.emoji;
@@ -274,6 +293,12 @@ export function initPet({ getContext } = {}) {
     speak(0, text);
     scheduleChatter();
   }
+
+  window.addEventListener("codetoui-theme", () => {
+    pets = load();
+    render();
+    scheduleChatter();
+  });
 
   render();
   if (pets.length > 0) {
