@@ -20,9 +20,12 @@
     "app:build:win": "npm run build && electron-builder --win"
   },
   "dependencies": {
+    "@babel/standalone": "^7.26.0",
     "chokidar": "^3.6.0",
     "connect": "^3.7.0",
     "parse5": "^8.1.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "serve-static": "^1.16.2",
     "ws": "^8.18.0"
   },

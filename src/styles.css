@@ -463,7 +463,23 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--accent-2);
+}
+
+.framework-select {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 2px solid var(--border);
+  padding: 4px 6px;
   margin-right: auto;
+  cursor: pointer;
+}
+
+.tab[hidden] {
+  display: none;
 }
 
 .status {

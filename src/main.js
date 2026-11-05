@@ -48,6 +48,7 @@ const previewEl = document.getElementById("preview");
 const previewFrameEl = document.getElementById("preview-frame");
 const previewStageEl = document.getElementById("preview-stage");
 const screenNameEl = document.getElementById("screen-name");
+const frameworkSelectEl = document.getElementById("framework-select");
 const screenListEl = document.getElementById("screen-list");
 const deviceSwitcherEl = document.getElementById("device-switcher");
 const overviewToggleEl = document.getElementById("overview-toggle");
@@ -112,6 +113,8 @@ const projectsErrorEl = document.getElementById("projects-error");
 let deviceSizes = {};
 let currentScreen = null;
 let currentScreens = [];
+let projectFrameworks = {}; // { ScreenName: "react" }
+let currentFramework = "vanilla";
 let linksData = { version: 1, links: [] };
 let linkMode = false;
 let selectedProtoId = null;
@@ -121,7 +124,7 @@ let autoSave = localStorage.getItem("codetoui-autosave") !== "off";
 
 // --- Save / auto-save -------------------------------------------------------
 function anyDirty() {
-  return ["html", "css", "js", "globalCss"].some((k) => syncs[k]?.dirty);
+  return ["html", "css", "js", "jsx", "globalCss"].some((k) => syncs[k]?.dirty);
 }
 
 function updateSaveIndicator() {
@@ -129,7 +132,7 @@ function updateSaveIndicator() {
 }
 
 async function saveAll() {
-  for (const k of ["html", "css", "js", "globalCss"]) {
+  for (const k of ["html", "css", "js", "jsx", "globalCss"]) {
     if (syncs[k]) await syncs[k].flush();
   }
   updateSaveIndicator();
@@ -184,8 +187,9 @@ applyTheme(localStorage.getItem(THEME_KEY) || "dark");
 let htmlView = null;
 let cssView = null;
 let jsView = null;
+let jsxView = null;
 let globalCssView = null;
-const syncs = {}; // 'html' | 'css' | 'js' | 'globalCss' -> FileSync
+const syncs = {}; // 'html' | 'css' | 'js' | 'jsx' | 'globalCss' -> FileSync
 
 async function fetchJson(url, opts) {
   const res = await fetch(url, opts);
@@ -255,19 +259,84 @@ ${scriptTag}
 </body></html>`;
 }
 
-function renderPreview() {
-  if (!htmlView || !cssView || !globalCssView) return;
-  const htmlContent = htmlView.state.doc.toString();
+// React runtime (React + ReactDOM + Babel) inlined into the preview iframe so
+// JSX compiles and renders offline. The sources are loaded lazily (dynamic
+// import) the first time a React screen renders, so vanilla users never pay the
+// bundle cost. Requires react@18 + react-dom@18 (UMD builds) + @babel/standalone.
+let _reactRuntime = null;
+async function reactRuntime() {
+  if (_reactRuntime) return _reactRuntime;
+  const [react, reactDom, babel] = await Promise.all([
+    import("react/umd/react.development.js?raw"),
+    import("react-dom/umd/react-dom.development.js?raw"),
+    import("@babel/standalone/babel.min.js?raw"),
+  ]);
+  _reactRuntime = { react: react.default, reactDom: reactDom.default, babel: babel.default };
+  return _reactRuntime;
+}
+
+function composeReactSrcdoc(jsxCode, cssContent, globalCssContent, rt) {
+  const userCode = String(jsxCode).replace(/<\/script/gi, "<\\/script");
+  return `<!doctype html>
+<html><head><meta charset="utf-8" />
+<style>${globalCssContent}</style>
+<style>${cssContent}</style>
+</head><body>
+<div id="root"></div>
+<script>${rt.react}<\/script>
+<script>${rt.reactDom}<\/script>
+<script>${rt.babel}<\/script>
+<script type="text/babel" data-presets="react">
+${userCode}
+;(function(){
+  var root = document.getElementById('root');
+  try {
+    if (typeof App === 'undefined') { root.textContent = 'Define a component named App to render it.'; return; }
+    ReactDOM.createRoot(root).render(React.createElement(App));
+  } catch (e) {
+    root.innerHTML = '<pre style="color:#c0304a;white-space:pre-wrap;padding:12px">' + String(e && e.stack || e) + '</pre>';
+  }
+})();
+<\/script>
+<script>${PREVIEW_BRIDGE_SCRIPT}<\/script>
+</body></html>`;
+}
+
+async function renderPreview() {
+  if (!cssView || !globalCssView) return;
   const cssContent = cssView.state.doc.toString();
   const globalCssContent = globalCssView.state.doc.toString();
+  // The new document re-reports its height via the bridge; until then fall back
+  // to the pane height so the frame isn't left at a stale size.
+  previewContentHeight = 0;
+
+  if (currentFramework === "react") {
+    if (!jsxView) return;
+    let srcdoc;
+    try {
+      const rt = await reactRuntime();
+      srcdoc = composeReactSrcdoc(jsxView.state.doc.toString(), cssContent, globalCssContent, rt);
+    } catch {
+      srcdoc = `<!doctype html><body style="font-family:sans-serif;padding:24px;color:#c0304a">
+        React runtime failed to load. Install it once:<br><br>
+        <code>npm install react react-dom @babel/standalone</code><br><br>
+        then restart the dev server.</body>`;
+    }
+    previewEl.srcdoc = srcdoc;
+    if (previewWindow && !previewWindow.closed) {
+      const frame = previewWindow.document.getElementById(POPOUT_FRAME_ID);
+      if (frame) frame.srcdoc = srcdoc;
+    }
+    return;
+  }
+
+  if (!htmlView) return;
+  const htmlContent = htmlView.state.doc.toString();
   const jsContent = jsView ? jsView.state.doc.toString() : "";
   // In Link mode we don't run the screen's own JS: it could swallow clicks and
   // fight the element-selection overlay.
   const opts = linkMode ? { script: buildLinkModeScript() } : { js: jsContent };
   previewEl.srcdoc = composeSrcdoc(htmlContent, cssContent, globalCssContent, opts);
-  // The new document will re-report its height via the bridge; until then fall
-  // back to the pane height so the frame isn't left at a stale size.
-  previewContentHeight = 0;
   if (previewWindow && !previewWindow.closed) {
     updatePopoutContent(htmlContent, cssContent, globalCssContent);
   }
@@ -1040,7 +1109,8 @@ async function createScreenAction() {
     screenAddErrorEl.hidden = false;
     return;
   }
-  const { screens } = await res.json();
+  const { config, screens } = await res.json();
+  projectFrameworks = config?.frameworks || projectFrameworks;
   newScreenNameEl.value = "";
   screenAddErrorEl.hidden = true;
   currentScreens = screens;
@@ -1058,6 +1128,7 @@ async function deleteScreenAction(name) {
   }
   const { config, screens } = await res.json();
   startScreenName = config.startScreen;
+  projectFrameworks = config.frameworks || {};
   currentScreens = screens;
   linksData = await fetchJson("/api/links"); // server pruned affected links
   if (currentScreen === name) {
@@ -1088,10 +1159,24 @@ function exportStatus(msg) {
 async function fetchScreensContent(names) {
   const out = [];
   for (const name of names) {
-    const { html: h, css: c, js: j } = await fetchJson(`/api/screen/${encodeURIComponent(name)}`);
-    out.push({ name, html: h, css: c, js: j });
+    const { html: h, css: c, js: j, jsx: x } = await fetchJson(`/api/screen/${encodeURIComponent(name)}`);
+    out.push({
+      name,
+      html: h,
+      css: c,
+      js: j,
+      jsx: x,
+      framework: projectFrameworks[name] === "react" ? "react" : "vanilla",
+    });
   }
   return out;
+}
+
+// React screens don't render in the prototype/image/PDF exports yet (those use
+// the HTML pipeline). Returns a status suffix noting any that were skipped.
+function reactSkipNote(names) {
+  const react = names.filter((n) => projectFrameworks[n] === "react");
+  return react.length ? ` (React screens skipped: ${react.join(", ")})` : "";
 }
 
 function renderExportPages() {
@@ -1141,7 +1226,7 @@ exportPrototypeEl.addEventListener("click", async () => {
     title: currentProjectEl.textContent,
   });
   downloadBlob(new Blob([html], { type: "text/html" }), `${projectSlug()}-prototype.html`);
-  exportStatus("Prototype exported ✓");
+  exportStatus("Prototype exported ✓" + reactSkipNote(names));
 });
 
 exportCodeEl.addEventListener("click", async () => {
@@ -1151,9 +1236,13 @@ exportCodeEl.addEventListener("click", async () => {
   const screens = await fetchScreensContent(names);
   const files = [{ path: "global.css", content: globalCssView.state.doc.toString() }];
   for (const s of screens) {
-    files.push({ path: `screens/${s.name}/${s.name}.html`, content: s.html });
     files.push({ path: `screens/${s.name}/${s.name}.css`, content: s.css });
-    if (s.js) files.push({ path: `screens/${s.name}/${s.name}.js`, content: s.js });
+    if (s.framework === "react") {
+      if (s.jsx) files.push({ path: `screens/${s.name}/${s.name}.jsx`, content: s.jsx });
+    } else {
+      files.push({ path: `screens/${s.name}/${s.name}.html`, content: s.html });
+      if (s.js) files.push({ path: `screens/${s.name}/${s.name}.js`, content: s.js });
+    }
   }
   files.push({ path: "links.json", content: JSON.stringify(linksData, null, 2) });
   const zip = buildZip(files);
@@ -1188,7 +1277,7 @@ exportImagesEl.addEventListener("click", async () => {
       const zip = buildZip(files.map((f) => ({ path: `${f.name}.png`, content: b64ToBytes(f.b64) })));
       downloadBlob(new Blob([zip], { type: "application/zip" }), `${projectSlug()}-images.zip`);
     }
-    exportStatus("Images exported ✓");
+    exportStatus("Images exported ✓" + reactSkipNote(names));
   } catch (err) {
     exportStatus(`Image export failed: ${err.message}`);
   }
@@ -1218,7 +1307,7 @@ exportPdfEl.addEventListener("click", async () => {
   }
   if (res.ok) {
     downloadBlob(await res.blob(), `${projectSlug()}.pdf`);
-    exportStatus("PDF exported ✓");
+    exportStatus("PDF exported ✓" + reactSkipNote(names));
     return;
   }
   // non-OK (e.g. 501 = no Puppeteer): use the print fallback.
@@ -1233,7 +1322,7 @@ exportPdfEl.addEventListener("click", async () => {
 });
 
 // --- Insert element menu ----------------------------------------------------
-const INSERT_SNIPPETS = [
+const INSERT_SNIPPETS_HTML = [
   ["Div", "<div>\n  \n</div>\n"],
   ["Paragraph", "<p>Text</p>\n"],
   ["Heading 1", "<h1>Heading</h1>\n"],
@@ -1250,20 +1339,36 @@ const INSERT_SNIPPETS = [
   ["Card", '<div class="card">\n  \n</div>\n'],
 ];
 
+const INSERT_SNIPPETS_JSX = [
+  ["Div", '<div className="">\n  \n</div>\n'],
+  ["Paragraph", "<p>Text</p>\n"],
+  ["Heading", "<h1>Heading</h1>\n"],
+  ["Button", "<button onClick={() => {}}>Button</button>\n"],
+  ["Input", "<input value={value} onChange={(e) => setValue(e.target.value)} />\n"],
+  ["Image", '<img src="" alt="" />\n'],
+  ["useState", "const [value, setValue] = React.useState(0);\n"],
+  ["Map list", "{items.map((item) => (\n  <li key={item.id}>{item.label}</li>\n))}\n"],
+  ["Conditional", "{show && (\n  <div>Shown</div>\n)}\n"],
+  ["Component", "function Thing() {\n  return <div>Thing</div>;\n}\n"],
+];
+
 function insertSnippet(text) {
-  activateTab("html"); // the Insert menu only edits HTML
-  if (!htmlView) return;
-  const sel = htmlView.state.selection.main;
-  htmlView.dispatch({
+  const react = currentFramework === "react";
+  activateTab(react ? "jsx" : "html");
+  const view = react ? jsxView : htmlView;
+  if (!view) return;
+  const sel = view.state.selection.main;
+  view.dispatch({
     changes: { from: sel.from, to: sel.to, insert: text },
     selection: { anchor: sel.from + text.length },
   });
-  htmlView.focus(); // the editor's own change listener handles save + re-render
+  view.focus(); // the editor's own change listener handles save + re-render
 }
 
 function buildInsertMenu() {
+  const snippets = currentFramework === "react" ? INSERT_SNIPPETS_JSX : INSERT_SNIPPETS_HTML;
   insertMenuEl.innerHTML = "";
-  for (const [label, snippet] of INSERT_SNIPPETS) {
+  for (const [label, snippet] of snippets) {
     const b = document.createElement("button");
     b.textContent = label;
     b.addEventListener("click", () => {
@@ -1277,7 +1382,7 @@ function buildInsertMenu() {
 insertToggleEl.addEventListener("click", (e) => {
   e.stopPropagation();
   if (insertMenuEl.hidden) {
-    if (!insertMenuEl.childElementCount) buildInsertMenu();
+    buildInsertMenu(); // rebuild each open — snippet set depends on the framework
     const r = insertToggleEl.getBoundingClientRect();
     insertMenuEl.style.left = `${Math.min(r.left, window.innerWidth - 240)}px`;
     insertMenuEl.style.top = `${r.bottom + 4}px`;
@@ -1345,19 +1450,37 @@ overviewToggleEl.addEventListener("click", () => {
   setOverviewVisible(show);
 });
 
+// Show the right editor tabs for the screen's framework and pick a default tab.
+// React: JSX + CSS (+ Global CSS). Vanilla: HTML + CSS + JS (+ Global CSS).
+function applyFrameworkTabs() {
+  const react = currentFramework === "react";
+  document.querySelector('.tab[data-tab="html"]').hidden = react;
+  document.querySelector('.tab[data-tab="js"]').hidden = react;
+  document.querySelector('.tab[data-tab="jsx"]').hidden = !react;
+  frameworkSelectEl.value = currentFramework;
+  // Link mode needs parsed HTML (data-proto-id); not available for JSX.
+  linkToggleEl.disabled = react;
+  linkToggleEl.title = react ? "Link mode is Vanilla-only for now" : "";
+  activateTab(react ? "jsx" : "html");
+}
+
 async function loadScreen(name) {
   if (syncs.html) await syncs.html.flush();
   if (syncs.css) await syncs.css.flush();
   if (syncs.js) await syncs.js.flush();
+  if (syncs.jsx) await syncs.jsx.flush();
 
   currentScreen = name;
+  currentFramework = projectFrameworks[name] === "react" ? "react" : "vanilla";
   screenNameEl.textContent = name;
 
-  const { html: htmlContent, css: cssContent, js: jsContent } = await fetchJson(`/api/screen/${name}`);
+  const { html: htmlContent, css: cssContent, js: jsContent, jsx: jsxContent } =
+    await fetchJson(`/api/screen/${name}`);
 
   if (htmlView) htmlView.destroy();
   if (cssView) cssView.destroy();
   if (jsView) jsView.destroy();
+  if (jsxView) jsxView.destroy();
 
   htmlView = makeEditorView(document.getElementById("editor-html"), html, htmlContent, () => {
     syncs.html.markDirtyAndScheduleSave();
@@ -1371,15 +1494,39 @@ async function loadScreen(name) {
     syncs.js.markDirtyAndScheduleSave();
     scheduleRender();
   });
+  jsxView = makeEditorView(
+    document.getElementById("editor-jsx"),
+    () => javascript({ jsx: true }),
+    jsxContent || "",
+    () => {
+      syncs.jsx.markDirtyAndScheduleSave();
+      scheduleRender();
+    }
+  );
 
   syncs.html = makeSync(htmlView, (content) => saveScreenFile("html", content), "html", "HTML");
   syncs.css = makeSync(cssView, (content) => saveScreenFile("css", content), "css", "CSS");
   syncs.js = makeSync(jsView, (content) => saveScreenFile("js", content), "js", "JS");
+  syncs.jsx = makeSync(jsxView, (content) => saveScreenFile("jsx", content), "jsx", "JSX");
 
+  applyFrameworkTabs();
   if (linkMode) resetLinkSelection();
   renderPreview();
   applyPreviewTransform();
 }
+
+frameworkSelectEl.addEventListener("change", async () => {
+  const framework = frameworkSelectEl.value;
+  await saveAll();
+  const { config } = await fetchJson("/api/screen-framework", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ screen: currentScreen, framework }),
+  });
+  projectFrameworks = config.frameworks || {};
+  if (linkMode) setLinkMode(false); // leave link mode if switching to react
+  await loadScreen(currentScreen);
+});
 
 function connectWebSocket(wsPort) {
   const ws = new WebSocket(`ws://${location.hostname}:${wsPort}/`);
@@ -1529,6 +1676,7 @@ async function main() {
     await fetchJson("/api/project");
   currentProjectEl.textContent = activeProject || "—";
   deviceSizes = config.deviceSizes || {};
+  projectFrameworks = config.frameworks || {};
   renderDeviceSwitcher();
 
   linksData = await fetchJson("/api/links");

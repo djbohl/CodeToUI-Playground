@@ -29,6 +29,10 @@
     <div class="main">
       <header class="topbar">
         <div class="screen-name" id="screen-name">Login</div>
+        <select class="framework-select" id="framework-select" title="Screen type">
+          <option value="vanilla">Vanilla</option>
+          <option value="react">React</option>
+        </select>
         <div class="device-switcher" id="device-switcher"></div>
         <button class="topbar-btn" id="save-btn">Save</button>
         <button class="topbar-btn" id="autosave-toggle">Auto-save: On</button>
@@ -47,12 +51,14 @@
             <button class="tab active" data-tab="html">HTML</button>
             <button class="tab" data-tab="css">CSS</button>
             <button class="tab" data-tab="js">JS</button>
+            <button class="tab" data-tab="jsx" hidden>JSX</button>
             <button class="tab" data-tab="globalCss">Global CSS</button>
             <button class="tab tab-insert" id="insert-toggle" title="Insert an element">+ Insert</button>
           </div>
           <div id="editor-html" class="editor-container"></div>
           <div id="editor-css" class="editor-container" hidden></div>
           <div id="editor-js" class="editor-container" hidden></div>
+          <div id="editor-jsx" class="editor-container" hidden></div>
           <div id="editor-globalCss" class="editor-container" hidden></div>
           <div id="conflict-banner" class="conflict-banner" hidden></div>
         </section>
