@@ -1078,11 +1078,29 @@ body {
   width: 100%;
 }
 
-.pet-soon {
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--muted);
+.pet-picker {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  width: 100%;
+  margin-top: 6px;
+}
+
+.pet-picker[hidden] {
+  display: none;
+}
+
+.pet-pick {
+  font-size: 20px;
+  line-height: 1;
+  padding: 4px 0;
+  background: var(--surface-2);
+  border: 2px solid var(--border);
+  cursor: pointer;
+}
+
+.pet-pick:hover {
+  border-color: var(--accent);
 }
 
 .pet-rehome {

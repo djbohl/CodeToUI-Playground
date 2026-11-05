@@ -195,7 +195,7 @@ export function initPet({ getContext } = {}) {
     egg.className = "pet-sprite egg";
     egg.textContent = "🥚";
     egg.title = "Hatch an egg";
-    egg.addEventListener("click", hatchEgg);
+    egg.addEventListener("click", () => hatchPet(Math.floor(Math.random() * PETS.length)));
     stage.appendChild(egg);
 
     const caption = document.createElement("div");
@@ -207,25 +207,37 @@ export function initPet({ getContext } = {}) {
     const eggBtn = document.createElement("button");
     eggBtn.className = "topbar-btn";
     eggBtn.textContent = "Hatch egg";
-    eggBtn.addEventListener("click", hatchEgg);
+    eggBtn.title = "Hatch a random surprise";
+    eggBtn.addEventListener("click", () => hatchPet(Math.floor(Math.random() * PETS.length)));
     const pixelBtn = document.createElement("button");
     pixelBtn.className = "topbar-btn";
-    pixelBtn.textContent = "Pixel pet 🔒";
-    pixelBtn.disabled = true;
-    pixelBtn.title = "Coming soon";
-    const soon = document.createElement("span");
-    soon.className = "pet-soon";
-    soon.textContent = "coming soon";
-    choice.append(eggBtn, pixelBtn, soon);
+    pixelBtn.textContent = "Pick pet";
+    pixelBtn.title = "Choose which pet to hatch";
 
-    unit.append(stage, caption, choice);
+    // Grid of pickable creatures, revealed by "Pick pet".
+    const picker = document.createElement("div");
+    picker.className = "pet-picker";
+    picker.hidden = true;
+    PETS.forEach((pet, i) => {
+      const b = document.createElement("button");
+      b.className = "pet-pick";
+      b.textContent = pet.emoji;
+      b.title = pet.kind;
+      b.addEventListener("click", () => hatchPet(i));
+      picker.appendChild(b);
+    });
+    pixelBtn.addEventListener("click", () => {
+      picker.hidden = !picker.hidden;
+    });
+
+    choice.append(eggBtn, pixelBtn);
+    unit.append(stage, caption, choice, picker);
     dock.appendChild(unit);
   }
 
   // --- actions ---
-  function hatchEgg() {
+  function hatchPet(i) {
     if (pets.length >= MAX_PETS) return;
-    const i = Math.floor(Math.random() * PETS.length);
     pets.push({ i, name: pick(NAMES) });
     save();
     render();
