@@ -33,7 +33,7 @@ const STANDALONE_PLAYER = `
   var base=null, history=[], overlays=[];
   function mapFor(name){
     var m={};
-    LINKS.forEach(function(l){ if(l.screen===name){ m[l.elementId]={target:l.target,mode:l.mode||'navigate'}; } });
+    LINKS.forEach(function(l){ if(l.screen===name){ m[l.elementId]={target:l.target,mode:l.mode||'navigate',transition:l.transition||'instant'}; } });
     return m;
   }
   function srcdoc(name){
@@ -41,41 +41,62 @@ const STANDALONE_PLAYER = `
     var jsTag = s.js ? '<scr'+'ipt>'+s.js+'</scr'+'ipt>' : '';
     return '<!doctype html><html><head><meta charset="utf-8"><style>'+GLOBAL+'</style><style>'+s.css+'</style></head><body>'+s.html+jsTag+'</body></html>';
   }
+  function startStyle(tr){
+    if(tr==='dissolve') return {opacity:'0',transform:'none'};
+    if(tr==='slide-left') return {opacity:'0',transform:'translateX(48px)'};
+    if(tr==='slide-right') return {opacity:'0',transform:'translateX(-48px)'};
+    if(tr==='slide-up') return {opacity:'0',transform:'translateY(48px)'};
+    if(tr==='slide-down') return {opacity:'0',transform:'translateY(-48px)'};
+    return {opacity:'1',transform:'none'};
+  }
+  function animateIn(f, tr){
+    var s=startStyle(tr);
+    f.style.transition='none'; f.style.opacity=s.opacity; f.style.transform=s.transform;
+    f.addEventListener('load', function(){
+      f.style.transition='opacity 180ms ease, transform 180ms ease';
+      f.style.opacity='1'; f.style.transform='none';
+    }, {once:true});
+  }
   function wire(doc, name){
     var map=mapFor(name);
     Object.keys(map).forEach(function(id){
       var el=doc.querySelector('[data-proto-id="'+id+'"]'); if(el) el.style.cursor='pointer';
     });
+    doc.querySelectorAll('[data-goto]').forEach(function(el){ el.style.cursor='pointer'; });
     doc.addEventListener('click', function(ev){
+      var g=ev.target.closest?ev.target.closest('[data-goto]'):null;
+      if(g){ ev.preventDefault(); nav(g.getAttribute('data-goto'), g.getAttribute('data-goto-mode')||'navigate', g.getAttribute('data-goto-transition')||'instant'); return; }
       var el=ev.target.closest?ev.target.closest('[data-proto-id]'):null;
       while(el){
         var id=el.getAttribute('data-proto-id');
-        if(map[id]){ ev.preventDefault(); nav(map[id].target, map[id].mode); return; }
+        if(map[id]){ ev.preventDefault(); nav(map[id].target, map[id].mode, map[id].transition); return; }
         el=el.parentElement&&el.parentElement.closest?el.parentElement.closest('[data-proto-id]'):null;
       }
     }, true);
   }
-  function renderBase(name){
+  function renderBase(name, tr){
     base=name;
     frame.onload=function(){ try{ wire(frame.contentDocument, name); }catch(e){} };
+    animateIn(frame, tr||'instant');
     frame.srcdoc=srcdoc(name);
   }
-  function openOverlay(name){
+  function openOverlay(name, tr){
     var ov=document.createElement('div'); ov.className='proto-ov';
     var f=document.createElement('iframe'); ov.appendChild(f);
     ov.addEventListener('click', function(e){ if(e.target===ov) closeTop(); });
     f.onload=function(){ try{ wire(f.contentDocument, name); }catch(e){} };
+    animateIn(f, (tr && tr!=='instant') ? tr : 'dissolve');
     document.body.appendChild(ov); overlays.push(ov); f.srcdoc=srcdoc(name);
   }
   function closeTop(){ var o=overlays.pop(); if(o) o.remove(); }
   function closeAll(){ overlays.forEach(function(o){ o.remove(); }); overlays=[]; }
-  function nav(target, mode){
-    if(target==='$back'){ if(overlays.length) closeTop(); else if(history.length) renderBase(history.pop()); return; }
-    if(target==='$home'){ closeAll(); if(base&&base!==START) history.push(base); renderBase(START); return; }
-    if(mode==='overlay'){ openOverlay(target); return; }
-    closeAll(); if(base) history.push(base); renderBase(target);
+  function nav(target, mode, tr){
+    if(target==='$back'){ if(overlays.length) closeTop(); else if(history.length) renderBase(history.pop(),'dissolve'); return; }
+    if(target==='$home'){ closeAll(); if(base&&base!==START) history.push(base); renderBase(START, tr); return; }
+    if(mode==='overlay'){ openOverlay(target, tr); return; }
+    closeAll(); if(base) history.push(base); renderBase(target, tr);
   }
-  renderBase(START);
+  renderBase(START, 'instant');
 })();
 `;
 

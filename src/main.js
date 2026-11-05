@@ -891,7 +891,15 @@ function playModeScript(linkMap, flash) {
       if (el) el.setAttribute('data-proto-hotspot','');
     });
   }
+  document.querySelectorAll('[data-goto]').forEach(function(el){ el.style.cursor = 'pointer'; });
   document.addEventListener('click', function(e){
+    // Code-first links: a data-goto="Screen" attribute in the raw HTML.
+    var g = e.target.closest ? e.target.closest('[data-goto]') : null;
+    if (g) {
+      e.preventDefault();
+      window.parent.postMessage({ source: 'proto-play', type: 'navigate', target: g.getAttribute('data-goto'), transition: g.getAttribute('data-goto-transition') || 'instant', mode: g.getAttribute('data-goto-mode') || 'navigate' }, '*');
+      return;
+    }
     var el = e.target.closest ? e.target.closest('[data-proto-id]') : null;
     while (el) {
       var id = el.getAttribute('data-proto-id');
