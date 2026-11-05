@@ -48,7 +48,7 @@ const previewEl = document.getElementById("preview");
 const previewFrameEl = document.getElementById("preview-frame");
 const previewStageEl = document.getElementById("preview-stage");
 const screenNameEl = document.getElementById("screen-name");
-const frameworkSelectEl = document.getElementById("framework-select");
+const frameworkToggleEl = document.getElementById("framework-toggle");
 const screenListEl = document.getElementById("screen-list");
 const deviceSwitcherEl = document.getElementById("device-switcher");
 const overviewToggleEl = document.getElementById("overview-toggle");
@@ -1471,7 +1471,8 @@ function applyFrameworkTabs() {
   document.querySelector('.tab[data-tab="html"]').hidden = react;
   document.querySelector('.tab[data-tab="js"]').hidden = react;
   document.querySelector('.tab[data-tab="jsx"]').hidden = !react;
-  frameworkSelectEl.value = currentFramework;
+  frameworkToggleEl.textContent = react ? "React" : "Vanilla";
+  frameworkToggleEl.classList.toggle("active", react);
   // Link mode needs parsed HTML (data-proto-id); not available for JSX.
   linkToggleEl.disabled = react;
   linkToggleEl.title = react ? "Link mode is Vanilla-only for now" : "";
@@ -1529,8 +1530,8 @@ async function loadScreen(name) {
   applyPreviewTransform();
 }
 
-frameworkSelectEl.addEventListener("change", async () => {
-  const framework = frameworkSelectEl.value;
+frameworkToggleEl.addEventListener("click", async () => {
+  const framework = currentFramework === "react" ? "vanilla" : "react";
   await saveAll();
   const { config } = await fetchJson("/api/screen-framework", {
     method: "POST",

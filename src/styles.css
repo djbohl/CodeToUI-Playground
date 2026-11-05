@@ -463,23 +463,38 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--accent-2);
-}
-
-.framework-select {
-  font-family: var(--font-ui);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text);
-  background: var(--surface-2);
-  border: 2px solid var(--border);
-  padding: 4px 6px;
   margin-right: auto;
-  cursor: pointer;
 }
 
 .tab[hidden] {
   display: none;
+}
+
+/* Vanilla/React toggle, pinned to the right of the + Insert tab. */
+.tab-framework {
+  align-self: center;
+  margin: 0 8px 0 4px;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  background: var(--surface-2);
+  border: 2px solid var(--border);
+  box-shadow: 2px 2px 0 var(--shadow);
+  padding: 4px 9px;
+  cursor: pointer;
+}
+
+.tab-framework:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.tab-framework.active {
+  color: var(--accent-ink);
+  background: var(--accent);
+  border-color: var(--accent);
 }
 
 .status {
