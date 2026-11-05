@@ -11,6 +11,7 @@
     "node": ">=20"
   },
   "scripts": {
+    "postinstall": "node scripts/vendor-react.mjs",
     "dev": "vite",
     "build": "vite build",
     "electron": "npm run build && electron .",

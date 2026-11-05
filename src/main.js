@@ -266,12 +266,21 @@ ${scriptTag}
 let _reactRuntime = null;
 async function reactRuntime() {
   if (_reactRuntime) return _reactRuntime;
+  // Served from public/vendor/ (copied out of node_modules by the postinstall
+  // script). We can't import the UMD files from the react package directly —
+  // React's package "exports" map doesn't expose umd/ — so we fetch the vendored
+  // copies and inline their text into the preview iframe.
+  const grab = async (name) => {
+    const res = await fetch(`/vendor/${name}`);
+    if (!res.ok) throw new Error(`missing /vendor/${name}`);
+    return res.text();
+  };
   const [react, reactDom, babel] = await Promise.all([
-    import("react/umd/react.development.js?raw"),
-    import("react-dom/umd/react-dom.development.js?raw"),
-    import("@babel/standalone/babel.min.js?raw"),
+    grab("react.development.js"),
+    grab("react-dom.development.js"),
+    grab("babel.min.js"),
   ]);
-  _reactRuntime = { react: react.default, reactDom: reactDom.default, babel: babel.default };
+  _reactRuntime = { react, reactDom, babel };
   return _reactRuntime;
 }
 
