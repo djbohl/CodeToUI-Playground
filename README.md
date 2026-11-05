@@ -110,8 +110,9 @@ resulting apps are unsigned; see the warning above.
 - **Vanilla or React** — each screen has a type selector. **Vanilla** screens
   use HTML/CSS/JS; **React** screens use a **JSX** component + CSS (define a
   component named `App`). Switching is non-destructive. React is bundled locally
-  so JSX renders offline. (Link/Play prototyping and the image/PDF exports are
-  Vanilla-only for now.)
+  so JSX renders offline, in Play mode, and in every export. Wire React screens
+  into prototypes with code-first `data-goto="Screen"` attributes. (Authoring
+  links by *clicking* elements — Link mode — stays Vanilla-only.)
 - **Insert** — the **+ Insert** tab opens a menu of common elements (div,
   paragraph, heading, button, input, list, …) that drop a snippet into the HTML
   at your cursor.
