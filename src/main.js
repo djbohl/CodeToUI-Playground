@@ -272,8 +272,13 @@ async function reactRuntime() {
   // copies and inline their text into the preview iframe.
   const grab = async (name) => {
     const res = await fetch(`/vendor/${name}`);
-    if (!res.ok) throw new Error(`missing /vendor/${name}`);
-    return res.text();
+    const type = res.headers.get("content-type") || "";
+    // A missing file makes the dev server fall back to index.html (200) — guard
+    // against inlining the app itself as the "runtime".
+    if (!res.ok || type.includes("html")) throw new Error(`missing /vendor/${name}`);
+    const text = await res.text();
+    if (/^\s*<(!doctype|html)/i.test(text)) throw new Error(`bad /vendor/${name}`);
+    return text;
   };
   const [react, reactDom, babel] = await Promise.all([
     grab("react.development.js"),
