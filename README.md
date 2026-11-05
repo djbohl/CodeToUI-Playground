@@ -107,6 +107,11 @@ resulting apps are unsigned; see the warning above.
 - **Editor tabs** — edit the screen's **HTML**, **CSS**, **JS** (per-screen
   JavaScript for interactivity, runs in the preview), or the shared
   **Global CSS** (colors, fonts, spacing used across all screens).
+- **Vanilla or React** — each screen has a type selector. **Vanilla** screens
+  use HTML/CSS/JS; **React** screens use a **JSX** component + CSS (define a
+  component named `App`). Switching is non-destructive. React is bundled locally
+  so JSX renders offline. (Link/Play prototyping and the image/PDF exports are
+  Vanilla-only for now.)
 - **Insert** — the **+ Insert** tab opens a menu of common elements (div,
   paragraph, heading, button, input, list, …) that drop a snippet into the HTML
   at your cursor.
